@@ -1,0 +1,38 @@
+2026-01-29 00:33:47 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 00:33:47 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 00:37:02 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 00:37:02 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 00:38:28 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 00:38:28 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 00:43:37 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 00:43:37 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 00:54:04 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 00:54:04 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 00:54:16 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 00:54:16 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 08:26:17 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 08:26:17 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 08:26:37 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 08:26:37 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 08:29:35 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 08:29:35 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 10:11:05 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 10:11:05 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 10:45:27 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 10:45:27 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-29 11:16:56 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 11:16:56 | INFO     | RAG | Loaded chunks from MySQL | {'count': 0}
+2026-01-29 11:17:09 | INFO     | RAG | Upload request received | {'file_count': 6}
+2026-01-29 11:19:26 | INFO     | RAG | Ingest request received | {'notice_id': '925bfad3-1c5d-47ec-bfb2-09113701c5fa', 'url': 'http://192.168.1.74:8000/media/notices/ktmmetro_1.'}
+2026-01-29 11:20:43 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 11:20:43 | INFO     | RAG | Loaded chunks from MySQL | {'count': 0}
+2026-01-29 11:21:27 | INFO     | RAG | Ingest request received | {'notice_id': '4fcb8964-de18-4471-b447-cfcb5d68f2f6', 'url': 'http://192.168.1.74:8000/media/notices/ktmmetro_2.'}
+2026-01-29 11:22:43 | INFO     | RAG | Ingest request received | {'notice_id': '628092a5-29ae-4e78-8794-bc458eb2d737', 'url': 'http://192.168.1.74:8000/media/notices/ktmmetro_3.'}
+2026-01-29 11:22:56 | INFO     | RAG | Ingest request received | {'notice_id': 'b702e596-5809-4f8b-a201-26e37b765b61', 'url': 'http://192.168.1.74:8000/media/notices/ktmmetro_5.'}
+2026-01-29 11:23:13 | INFO     | RAG | Ingest request received | {'notice_id': '9ca916ea-6744-4a4f-9a61-1fb995768717', 'url': 'http://192.168.1.74:8000/media/notices/ktmmetro_6.'}
+2026-01-29 12:49:08 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 12:49:08 | INFO     | RAG | Loaded chunks from MySQL | {'count': 0}
+2026-01-29 12:49:21 | INFO     | RAG | Upload request received | {'file_count': 6}
+2026-01-29 14:19:51 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-29 14:19:51 | INFO     | RAG | Loaded chunks from MySQL | {'count': 0}
+2026-01-29 14:20:23 | INFO     | RAG | Upload request received | {'file_count': 6}

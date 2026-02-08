@@ -1,0 +1,66 @@
+2026-02-01 00:00:04 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-02-01 00:00:04 | INFO     | RAG | Loaded chunks from MySQL | {'count': 0}
+2026-02-01 00:01:50 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-02-01 00:01:50 | INFO     | RAG | Loaded chunks from MySQL | {'count': 0}
+2026-02-01 00:03:17 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-02-01 00:03:17 | INFO     | RAG | Loaded chunks from MySQL | {'count': 0}
+2026-02-01 00:08:57 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-02-01 00:08:57 | INFO     | RAG | Loaded chunks from MySQL | {'count': 0}
+2026-02-01 00:09:18 | INFO     | RAG | Chat request | {'question': 'hi', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:09:39 | INFO     | RAG | Upload request received | {'file_count': 1}
+2026-02-01 00:10:39 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-02-01 00:10:39 | INFO     | RAG | Loaded chunks from MySQL | {'count': 595}
+2026-02-01 00:10:44 | INFO     | RAG | Chat request | {'question': 'hi', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:10:59 | INFO     | RAG | Chat request | {'question': 'rights of prime minister ?', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:11:00 | DEBUG    | RAG | Smart query expansion | {'original': 'rights of prime minister ?', 'variations': ['rights of prime minister ?', 'This information is not available in the documents.']}
+2026-02-01 00:11:05 | DEBUG    | RAG | Top retrieval results | {'query': 'rights of prime minister ?', 'top_scores': ['0.829', '0.818', '0.817']}
+2026-02-01 00:11:05 | DEBUG    | RAG | After threshold filtering | {'threshold': 0.65, 'remaining_count': 6}
+2026-02-01 00:11:06 | INFO     | RAG | Response quality | {'score': 60, 'is_valid': False, 'issues': ['Answer too short (< 10 words)']}
+2026-02-01 00:11:07 | INFO     | RAG | Query completed | {'response_time': '7.91s', 'session_id': 'default'}
+2026-02-01 00:15:40 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-02-01 00:15:40 | INFO     | RAG | Loaded chunks from MySQL | {'count': 595}
+2026-02-01 00:15:47 | INFO     | RAG | Chat request | {'question': 'hi', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:15:56 | INFO     | RAG | Chat request | {'question': 'about rights of prime minister', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:16:02 | DEBUG    | RAG | Smart query expansion | {'original': 'about rights of prime minister', 'variations': ['about rights of prime minister', "prime minister's authority", 'प्रधानमंत्रीको अधिकार', 'government leader rights']}
+2026-02-01 00:16:08 | DEBUG    | RAG | Top retrieval results | {'query': 'about rights of prime minister', 'top_scores': ['0.840', '0.838', '0.834']}
+2026-02-01 00:16:08 | DEBUG    | RAG | After threshold filtering | {'threshold': 0.65, 'remaining_count': 6}
+2026-02-01 00:16:36 | INFO     | RAG | Response quality | {'score': 90, 'is_valid': True, 'issues': []}
+2026-02-01 00:16:49 | INFO     | RAG | Chat request | {'question': 'hi', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:17:08 | INFO     | RAG | Chat request | {'question': 'about rights of president', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:17:11 | DEBUG    | RAG | Smart query expansion | {'original': 'about rights of president', 'variations': ['about rights of president', 'Nepali president rights', 'नेपाली प्रधानमंत्री का हक', 'presidential powers Nepal']}
+2026-02-01 00:17:11 | DEBUG    | RAG | Top retrieval results | {'query': 'about rights of president', 'top_scores': ['0.860', '0.858', '0.857']}
+2026-02-01 00:17:11 | DEBUG    | RAG | After threshold filtering | {'threshold': 0.65, 'remaining_count': 6}
+2026-02-01 00:17:45 | INFO     | RAG | Response quality | {'score': 90, 'is_valid': True, 'issues': []}
+2026-02-01 00:18:39 | INFO     | RAG | Chat request | {'question': 'make it short', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:18:46 | DEBUG    | RAG | Smart query expansion | {'original': 'make it short', 'variations': ['make it short', 'concise version', 'विसर्जन प्रक्रिया', 'कратकीय']}
+2026-02-01 00:18:47 | DEBUG    | RAG | Top retrieval results | {'query': 'make it short', 'top_scores': ['0.795', '0.788', '0.787']}
+2026-02-01 00:18:47 | DEBUG    | RAG | After threshold filtering | {'threshold': 0.65, 'remaining_count': 6}
+2026-02-01 00:19:10 | INFO     | RAG | Response quality | {'score': 90, 'is_valid': True, 'issues': []}
+2026-02-01 00:22:53 | INFO     | RAG | Chat request | {'question': 'about fundamental rights of citizen', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:22:57 | DEBUG    | RAG | Smart query expansion | {'original': 'about fundamental rights of citizen', 'variations': ['about fundamental rights of citizen', 'नेपाली सिविकन कुरा', 'मूलभूत अधिकारहरू प्रस्ताव', 'जनताको मूलभूत अधिकार संकलन']}
+2026-02-01 00:22:58 | DEBUG    | RAG | Top retrieval results | {'query': 'about fundamental rights of citizen', 'top_scores': ['0.824', '0.816', '0.813']}
+2026-02-01 00:22:58 | DEBUG    | RAG | After threshold filtering | {'threshold': 0.65, 'remaining_count': 6}
+2026-02-01 00:23:26 | INFO     | RAG | Response quality | {'score': 90, 'is_valid': True, 'issues': []}
+2026-02-01 00:24:15 | INFO     | RAG | Query completed | {'response_time': '82.37s', 'session_id': 'default'}
+2026-02-01 00:26:13 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-02-01 00:26:13 | INFO     | RAG | Loaded chunks from MySQL | {'count': 595}
+2026-02-01 00:26:47 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-02-01 00:26:47 | INFO     | RAG | Loaded chunks from MySQL | {'count': 595}
+2026-02-01 00:27:01 | INFO     | RAG | Chat request | {'question': 'make it short', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:27:07 | DEBUG    | RAG | Smart query expansion | {'original': 'make it short', 'variations': ['make it short', 'concise information', 'कोशीस गर्ने जानकारी', 'brief details']}
+2026-02-01 00:27:13 | DEBUG    | RAG | Top retrieval results | {'query': 'make it short', 'top_scores': ['0.807', '0.805', '0.803']}
+2026-02-01 00:27:13 | DEBUG    | RAG | After threshold filtering | {'threshold': 0.65, 'remaining_count': 6}
+2026-02-01 00:27:26 | INFO     | RAG | Response quality | {'score': 100, 'is_valid': True, 'issues': []}
+2026-02-01 00:27:31 | INFO     | RAG | Chat request | {'question': 'make a summary of this : Based on the provided Con', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:27:41 | INFO     | RAG | Chat request | {'question': 'make a summary of this : Based on the provided Con', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:27:46 | INFO     | RAG | Chat request | {'question': 'make a summary of this : Based on the provided Con', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 00:27:52 | DEBUG    | RAG | Smart query expansion | {'original': 'make a summary of this : Based on the provided Constitution-of-Nepal_2072_Eng document sections, here are the key points regarding the fundamental rights of citizens: 1. **Citizenship Rights:** - Citizenship, passport, visa, immigration policies apply to all citizens. 2. **Social Inclusion and Protection:** - Indigent citizens and those from communities on the verge of extinction have special opportunities in education, health, housing, employment, food, and social security for their protection, upliftment, empowerment, and development. - Citizens with disabilities are entitled to live with dignity and honor. They also enjoy equal access to public services and facilities. 3. **Labor Rights:** - Farmers have the right to access land for agro activities and protect local seeds and species traditionally used in', 'variations': ['make a summary of this : Based on the provided Constitution-of-Nepal_2072_Eng document sections, here are the key points regarding the fundamental rights of citizens: 1. **Citizenship Rights:** - Citizenship, passport, visa, immigration policies apply to all citizens. 2. **Social Inclusion and Protection:** - Indigent citizens and those from communities on the verge of extinction have special opportunities in education, health, housing, employment, food, and social security for their protection, upliftment, empowerment, and development. - Citizens with disabilities are entitled to live with dignity and honor. They also enjoy equal access to public services and facilities. 3. **Labor Rights:** - Farmers have the right to access land for agro activities and protect local seeds and species traditionally used in', 'नेपाली संविधान, **नागरिकत्व**, प्रवास', 'fundamental rights, **समुदायोको सहयोग**, शिक्षा', 'labour rights, कृषि अधिकार, लौंडी अधिकार']}
+2026-02-01 00:27:52 | DEBUG    | RAG | Top retrieval results | {'query': 'make a summary of this : Based on the provided Con', 'top_scores': ['0.988', '0.856', '0.851']}
+2026-02-01 00:27:52 | DEBUG    | RAG | After threshold filtering | {'threshold': 0.65, 'remaining_count': 18}
+2026-02-01 00:28:40 | INFO     | RAG | Response quality | {'score': 80, 'is_valid': True, 'issues': []}
+2026-02-01 12:28:58 | INFO     | RAG | Chat request | {'question': 'rights of prime minister', 'session_id': 'default', 'ip': '127.0.0.1'}
+2026-02-01 12:29:08 | DEBUG    | RAG | Smart query expansion | {'original': 'rights of prime minister', 'variations': ['rights of prime minister', "Nepali Prime Minister's rights", 'सन्नीति मंत्री का हक', 'prime ministerial powers']}
+2026-02-01 12:29:09 | DEBUG    | RAG | Top retrieval results | {'query': 'rights of prime minister', 'top_scores': ['0.848', '0.848', '0.847']}
+2026-02-01 12:29:09 | DEBUG    | RAG | After threshold filtering | {'threshold': 0.65, 'remaining_count': 6}
+2026-02-01 12:29:29 | INFO     | RAG | Response quality | {'score': 90, 'is_valid': True, 'issues': []}
+2026-02-01 12:30:01 | INFO     | RAG | Query completed | {'response_time': '62.69s', 'session_id': 'default'}

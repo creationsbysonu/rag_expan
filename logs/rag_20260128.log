@@ -1,0 +1,39 @@
+2026-01-28 20:04:02 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 20:04:02 | INFO     | RAG | Loaded chunks from MySQL | {'count': 595}
+2026-01-28 20:08:54 | INFO     | RAG | Ingest request received | {'notice_id': 'ec53600a-229c-4884-909c-f1815b5f249b', 'url': 'http://192.168.1.112:8000/media/notices/%E0%A4%AA%'}
+2026-01-28 20:41:12 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 20:41:13 | INFO     | RAG | Loaded chunks from MySQL | {'count': 1196}
+2026-01-28 20:51:29 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 20:51:29 | INFO     | RAG | Loaded chunks from MySQL | {'count': 0}
+2026-01-28 20:51:59 | INFO     | RAG | Upload request received | {'file_count': 6}
+2026-01-28 20:55:11 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 20:55:11 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 21:04:55 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 21:04:55 | INFO     | RAG | Loaded chunks from MySQL | {'count': 0}
+2026-01-28 21:05:13 | INFO     | RAG | Upload request received | {'file_count': 6}
+2026-01-28 21:21:40 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 21:21:40 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 21:35:26 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 21:35:26 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 22:04:41 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 22:04:42 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 22:10:20 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 22:10:20 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 22:24:49 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 22:24:49 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 22:28:47 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 22:28:47 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 22:36:57 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 22:36:57 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 22:56:17 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 22:56:17 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 23:01:46 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 23:01:46 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 23:05:02 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 23:05:02 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 23:07:51 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 23:07:51 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 23:14:59 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 23:14:59 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
+2026-01-28 23:19:58 | INFO     | RAG | Initializing MySQL connection pool | {'pool_size': 5}
+2026-01-28 23:19:58 | INFO     | RAG | Loaded chunks from MySQL | {'count': 25}
