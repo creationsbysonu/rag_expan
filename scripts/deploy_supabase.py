@@ -86,14 +86,21 @@ def collect_secrets() -> list[dict[str, str]]:
     return out
 
 
-def enable_anonymous(ref: str, token: str) -> None:
-    status, _ = api(
-        "PATCH",
-        f"/v1/projects/{ref}/config/auth",
-        token,
-        {"external_anonymous_users_enabled": True},
-    )
+def enable_anonymous(ref: str, token: str, site_url: str | None = None) -> None:
+    body: dict[str, object] = {"external_anonymous_users_enabled": True}
+    if site_url:
+        site_url = site_url.rstrip("/")
+        body["site_url"] = site_url
+        body["uri_allow_list"] = ",".join(
+            [
+                f"{site_url}/auth/callback",
+                "http://localhost:3000/auth/callback",
+            ]
+        )
+    status, _ = api("PATCH", f"/v1/projects/{ref}/config/auth", token, body)
     print(f"✓ anonymous sign-ins enabled (HTTP {status})")
+    if site_url:
+        print(f"✓ auth site URL → {site_url} (redirect: {site_url}/auth/callback)")
 
 
 def push_secrets(ref: str, token: str, secrets: list[dict[str, str]]) -> None:
@@ -130,6 +137,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--only", choices=["auth", "secrets", "functions"])
+    parser.add_argument("--site-url", help="production URL for auth redirects, e.g. https://app.vercel.app")
     args = parser.parse_args()
 
     load_env()
@@ -153,7 +161,7 @@ def main() -> None:
         )
 
     if args.only in (None, "auth"):
-        enable_anonymous(ref, token)
+        enable_anonymous(ref, token, args.site_url)
     if args.only in (None, "secrets"):
         push_secrets(ref, token, secrets)
     if args.only in (None, "functions"):
