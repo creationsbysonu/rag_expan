@@ -8,6 +8,8 @@ const columns = [
     links: [
       { href: "/chat", label: "Ask the record" },
       { href: "/documents", label: "Browse corpus" },
+      { href: "/upload", label: "Publish a document" },
+      { href: "/integrate", label: "Embed or use the API" },
       { href: "/dashboard", label: "Signals" },
     ],
   },

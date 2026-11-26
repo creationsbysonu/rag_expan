@@ -42,6 +42,9 @@ export function SiteHeader() {
 
   useEffect(() => setOpen(false), [pathname]);
 
+  // The /embed route is a chrome-free surface meant for iframes.
+  if (pathname.startsWith("/embed")) return null;
+
   return (
     <header
       className={cn(

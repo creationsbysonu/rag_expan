@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 import { CorpusBrowser } from "@/components/documents/corpus-browser";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -16,10 +18,18 @@ export default function DocumentsPage() {
           <h1 className="max-w-[20ch] font-display text-[clamp(2.4rem,5vw,3.8rem)] leading-[0.98] tracking-[-0.02em] text-bone-50">
             The corpus, <span className="italic text-brass-300">in full.</span>
           </h1>
-          <p className="max-w-[42ch] text-[13px] leading-relaxed text-bone-400">
-            Everything the assistant may cite. If a document is not here, the assistant will not
-            claim to know it.
-          </p>
+          <div className="flex flex-col items-start gap-4 sm:items-end">
+            <p className="max-w-[42ch] text-[13px] leading-relaxed text-bone-400">
+              Everything the assistant may cite. If a document is not here, the assistant will not
+              claim to know it.
+            </p>
+            <Link
+              href="/upload"
+              className="inline-flex h-9 items-center gap-1.5 rounded-[4px] border border-bone-100/20 px-3.5 text-[12.5px] text-bone-200 transition-colors hover:border-brass-400/50 hover:text-brass-300"
+            >
+              <Plus className="h-3.5 w-3.5" /> Publish a document
+            </Link>
+          </div>
         </div>
 
         <div className="mt-12">

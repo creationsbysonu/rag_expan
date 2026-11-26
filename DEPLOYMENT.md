@@ -115,11 +115,21 @@ select count(*) from chunks where embedding is not null;
 
 ## 6. Make yourself an admin
 
+Sign in to the app once, then either:
+
+```bash
+python3 scripts/grant_admin.py you@example.com
+```
+
+or run the SQL directly:
+
 ```sql
 update public.profiles set role = 'admin' where email = 'you@example.com';
 ```
 
-Admins can call the `ingest` function from the dashboard or with curl:
+Admins publish documents from **`/upload`** — drag a PDF/TXT/MD/CSV, fill in the
+title and metadata, and the function extracts, chunks and embeds it in one pass.
+The same call works from a script:
 
 ```bash
 curl -X POST "https://<ref>.supabase.co/functions/v1/ingest" \
@@ -146,7 +156,18 @@ curl -X POST "https://<ref>.supabase.co/functions/v1/ingest" \
 
 4. Deploy. Add the production domain to Supabase redirect URLs afterwards.
 
-## 8. Local development
+## 8. Embedding the assistant
+
+`/integrate` documents the three integration depths. In short:
+
+- **Widget** — `<iframe src="https://<your-app>.vercel.app/embed?accent=%23dfa851">`
+  (or the floating-bubble snippet on that page). No build step.
+- **API** — `POST https://<ref>.supabase.co/functions/v1/chat` with the publishable
+  key in `apikey`; reads SSE frames `sources` → `token` → `done`.
+- **Server-side** — same endpoint from your backend, which keeps keys and PII on
+  your side. A Python example is on that page.
+
+## 9. Local development
 
 ```bash
 cd web

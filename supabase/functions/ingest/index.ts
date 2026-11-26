@@ -165,6 +165,18 @@ Deno.serve(async (request: Request) => {
       .from("documents")
       .update({ ingest_status: "failed" })
       .eq("id", document.id);
-    return json({ message: `Ingestion failed: ${(error as Error).message}` }, 500);
+
+    const detail = (error as Error).message;
+    if (detail.includes("(429)") || detail.toLowerCase().includes("quota")) {
+      return json(
+        {
+          document_id: document.id,
+          message:
+            "Embedding quota is exhausted for today, so the passages could not be indexed. The document is saved and marked failed — retry after the quota resets.",
+        },
+        429,
+      );
+    }
+    return json({ message: `Ingestion failed: ${detail}` }, 500);
   }
 });
