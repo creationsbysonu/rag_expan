@@ -31,6 +31,14 @@ from urllib.parse import urlparse
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CLI = "supabase@2.40.7"
 FUNCTIONS = ["chat", "ingest"]
+# Pushed only when present in .env; which ones matter depends on LLM_PROVIDER.
+OPTIONAL_SECRETS = [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_API_TOKEN",
+    "CF_EMBED_MODEL",
+    "CF_CHAT_MODEL",
+]
+
 SECRETS = ["GEMINI_API_KEY", "INGEST_SECRET", "RATE_LIMIT_PER_MINUTE", "GEMINI_CHAT_MODEL"]
 DEFAULTS = {"RATE_LIMIT_PER_MINUTE": "30", "GEMINI_CHAT_MODEL": "gemini-2.5-flash"}
 
@@ -74,15 +82,36 @@ def api(method: str, path: str, token: str, body: dict | list | None = None):
 
 
 def collect_secrets() -> list[dict[str, str]]:
-    out: list[dict[str, str]] = []
+    provider = (os.getenv("LLM_PROVIDER") or "gemini").lower()
+    out: list[dict[str, str]] = [{"name": "LLM_PROVIDER", "value": provider}]
+
     for name in SECRETS:
         if name == "GEMINI_API_KEY":
-            value = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_GEMINI_API_KEY", "")
+            gemini = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_GEMINI_API_KEY", "")
+            # A Cloudflare-only deployment has no Gemini key; the functions
+            # never reach that provider.
+            if not gemini and provider == "cloudflare":
+                continue
+            value = gemini
         else:
             value = os.getenv(name, "") or DEFAULTS.get(name, "")
         if not value:
             raise SystemExit(f"✗ {name} is missing from .env")
         out.append({"name": name, "value": value})
+
+    for name in OPTIONAL_SECRETS:
+        value = os.getenv(name, "")
+        if value:
+            out.append({"name": name, "value": value})
+
+    if provider == "cloudflare":
+        pushed = {item["name"] for item in out}
+        for required in ("CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"):
+            if required not in pushed:
+                raise SystemExit(
+                    f"✗ {required} is missing from .env (required when LLM_PROVIDER=cloudflare)"
+                )
+
     return out
 
 

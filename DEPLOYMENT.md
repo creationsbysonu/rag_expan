@@ -106,6 +106,30 @@ Gemini's free tier allows 1,000 embedding requests per day. This corpus needs
 message and must be repeated after the daily reset, or with billing enabled on
 the key.
 
+### Using a different model provider
+
+`LLM_PROVIDER` selects the model backend for both the Edge Functions and this
+script. Both supported providers emit 768-dimensional vectors, so the schema
+does not change.
+
+| Provider | Free allowance | Embeddings | Chat | Notes |
+| --- | --- | --- | --- | --- |
+| `gemini` | 1,000 embed requests/day | `gemini-embedding-001` | `gemini-2.5-flash` | Multilingual |
+| `cloudflare` | 10,000 Neurons/day | `@cf/baai/bge-base-en-v1.5` | `@cf/meta/llama-3.1-8b-instruct` | One token, English-only embeddings |
+
+```bash
+export LLM_PROVIDER=cloudflare
+export CLOUDFLARE_ACCOUNT_ID=<account-id>
+export CLOUDFLARE_API_TOKEN=<workers-ai-token>
+python scripts/deploy_supabase.py --only secrets
+python scripts/deploy_supabase.py --only functions
+python scripts/migrate_to_supabase.py --replace
+export EMBED_PAUSE=0
+```
+
+Switch providers with an empty corpus or re-embed everything (`--replace`): a
+vector from one model is meaningless to the other even at the same dimensions.
+
 Verify in SQL:
 
 ```sql

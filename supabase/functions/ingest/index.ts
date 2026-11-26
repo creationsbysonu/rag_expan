@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
 import { json, preflight } from "../_shared/cors.ts";
-import { embedDocuments } from "../_shared/gemini.ts";
+import { embedDocuments } from "../_shared/llm.ts";
 import { detectLanguage } from "../_shared/scoring.ts";
 import { resolveUser, serviceClient } from "../_shared/supabase.ts";
 

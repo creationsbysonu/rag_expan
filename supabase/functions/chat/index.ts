@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
-import { embedQuery, generateStream } from "../_shared/gemini.ts";
+import { embedQuery, generateStream } from "../_shared/llm.ts";
 import { detectLanguage, scoreAnswer, truncateContext } from "../_shared/scoring.ts";
 import { clientHash, resolveUser, serviceClient } from "../_shared/supabase.ts";
 

@@ -53,6 +53,15 @@ load_project_env()
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
 EMBED_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
 DIMS = 768
+
+# Embedding provider: "gemini" (default) or "cloudflare" (Workers AI).
+# Must match LLM_PROVIDER in the Edge Functions, or queries and passages end up
+# in different vector spaces.
+PROVIDER = (os.getenv("LLM_PROVIDER") or "gemini").lower()
+CF_ACCOUNT_ID = os.getenv("CLOUDFLARE_ACCOUNT_ID", "")
+CF_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "")
+CF_EMBED_MODEL = os.getenv("CF_EMBED_MODEL", "@cf/baai/bge-base-en-v1.5")
+CF_MAX_CHARS = 2000  # bge-base-en-v1.5 accepts 512 tokens
 BATCH = 8
 PAUSE_SECONDS = float(os.getenv("EMBED_PAUSE", "1.2"))
 TOTAL_CHUNKS = 0
@@ -151,8 +160,49 @@ def load_from_mysql(limit: int | None) -> list[Document]:
     return list(unique.values())
 
 
+def cf_embed_batch(client: httpx.Client, texts: list[str]) -> list[list[float]]:
+    """Embeddings from Cloudflare Workers AI (OpenAI-compatible endpoint)."""
+    if not CF_ACCOUNT_ID or not CF_API_TOKEN:
+        raise RuntimeError(
+            "LLM_PROVIDER=cloudflare needs CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN in .env"
+        )
+
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/ai/v1/embeddings"
+    last_error = ""
+    for attempt in range(6):
+        response = client.post(
+            url,
+            headers={"Authorization": f"Bearer {CF_API_TOKEN}"},
+            json={"model": CF_EMBED_MODEL, "input": [t[:CF_MAX_CHARS] for t in texts]},
+            timeout=120,
+        )
+        if response.status_code == 429 or response.status_code >= 500:
+            last_error = f"HTTP {response.status_code}: {response.text[:300]}"
+            wait = min(2 ** (attempt + 1), 45)
+            print(f"    · Cloudflare rate limited, retrying in {wait}s")
+            time.sleep(wait)
+            continue
+        if response.status_code >= 400:
+            raise RuntimeError(f"Cloudflare embedding failed: HTTP {response.status_code}: {response.text[:400]}")
+
+        vectors = [item.get("embedding", []) for item in response.json().get("data", [])]
+        if len(vectors) != len(texts):
+            raise RuntimeError("Cloudflare embedding count mismatch")
+        for vector in vectors:
+            if len(vector) != DIMS:
+                raise RuntimeError(
+                    f"{CF_EMBED_MODEL} returned {len(vector)} dimensions, expected {DIMS} — "
+                    "the pgvector column is 768, so pick a 768-dim embedding model"
+                )
+        return vectors
+
+    raise RuntimeError(f"Cloudflare embedding failed after retries. Last error: {last_error}")
+
+
 def embed_batch(client: httpx.Client, api_key: str, texts: Iterable[str]) -> list[list[float]]:
     texts = list(texts)
+    if PROVIDER == "cloudflare":
+        return cf_embed_batch(client, texts)
     payload = {
         "requests": [
             {
@@ -284,9 +334,17 @@ def main() -> None:
 
     supabase_url = require_env("SUPABASE_URL")
     service_key = require_env("SUPABASE_SERVICE_ROLE_KEY")
-    api_key = require_env("GEMINI_API_KEY") if not os.getenv("GOOGLE_GEMINI_API_KEY") else os.environ[
-        "GOOGLE_GEMINI_API_KEY"
-    ]
+    if PROVIDER == "cloudflare":
+        api_key = ""  # unused, but embed_batch keeps one signature for both paths
+        require_env("CLOUDFLARE_ACCOUNT_ID")
+        require_env("CLOUDFLARE_API_TOKEN")
+    else:
+        api_key = (
+            require_env("GEMINI_API_KEY")
+            if not os.getenv("GOOGLE_GEMINI_API_KEY")
+            else os.environ["GOOGLE_GEMINI_API_KEY"]
+        )
+    print(f"embeddings: {PROVIDER}" + (f" ({CF_EMBED_MODEL})" if PROVIDER == "cloudflare" else f" ({EMBED_MODEL})"))
 
     supabase = Supabase(supabase_url, service_key)
     embedded = 0

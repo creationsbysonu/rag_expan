@@ -72,7 +72,7 @@ export async function embedDocuments(texts: string[]): Promise<number[][]> {
   return vectors;
 }
 
-interface GenerateArgs {
+export interface GenerateArgs {
   system: string;
   prompt: string;
   temperature?: number;
