@@ -294,6 +294,50 @@ def stream_answer(question: str, ministry: str | None = None):
           </div>
         </div>
 
+        <div className="mt-16 border-t border-bone-100/10 pt-10">
+          <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr]">
+            <div>
+              <p className="label-mono">04 · Run your own</p>
+              <h2 className="mt-4 font-display text-[clamp(1.9rem,3.4vw,2.6rem)] leading-[1.05] text-bone-50">
+                The whole stack, yours.
+              </h2>
+              <p className="mt-4 max-w-[46ch] text-[13px] leading-relaxed text-bone-400">
+                Everything here is a template: the schema, the Edge Functions and the interface.
+                Point it at your own Supabase project, load your own documents, and your team has
+                a grounded assistant — not a wrapper around someone else&apos;s API.
+              </p>
+              <ul className="mt-5 space-y-2 text-[12px] leading-relaxed text-bone-500">
+                <li>— Postgres + pgvector, row-level security on every table</li>
+                <li>— Streaming retrieval with citations, Nepali and English</li>
+                <li>— Upload UI, embeddable widget, public API</li>
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <CodeBlock
+                title="1 · clone and configure"
+                code={`git clone https://github.com/creationsbysonu/rag_expan
+cd rag_expan
+cp .env.example .env          # Supabase URL, service key, Gemini key
+cp web/.env.example web/.env.local`}
+              />
+              <CodeBlock
+                title="2 · schema and functions"
+                code={`DB_PASSWORD='<db-password>' python3 scripts/apply_migration.py
+SUPABASE_ACCESS_TOKEN=sbp_... python3 scripts/deploy_supabase.py`}
+              />
+              <CodeBlock
+                title="3 · your corpus, then deploy"
+                code={`# publish from /upload, or push a file from a script:
+curl -X POST "$SUPABASE_URL/functions/v1/ingest" \\
+  -H "x-ingest-secret: $INGEST_SECRET" \\
+  -F "file=@your-notice.pdf" -F "title=Your notice"
+
+cd web && npm install && npm run dev   # http://localhost:3000`}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="mt-16 flex flex-wrap items-center justify-between gap-6 border-t border-bone-100/10 pt-10">
           <div className="flex items-center gap-3">
             <MessageSquare className="h-4 w-4 text-brass-300" />

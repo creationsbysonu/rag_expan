@@ -179,6 +179,16 @@ npm run dev
 Without Supabase envs the UI runs against the local FastAPI backend; set
 `NEXT_PUBLIC_RAG_API_URL=http://localhost:8001` and run `python app_chat.py`.
 
+## Verifying a deployment
+
+```bash
+python3 scripts/smoke_test.py --site https://<your-app>.vercel.app
+```
+
+Checks every route, the 404 page, framing headers on `/embed`, the RPCs,
+retrieval mechanics (inserts a vector, searches it, deletes it), anonymous auth,
+chat streaming, CORS and the ingest validation paths. Exits non-zero on failure.
+
 ## Operational notes
 
 - **Rate limiting** lives in the `chat` function (counts `query_logs` per user or

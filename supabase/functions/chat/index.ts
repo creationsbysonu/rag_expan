@@ -120,7 +120,22 @@ Deno.serve(async (request: Request) => {
     if (error) throw new Error(error.message);
     matches = (data ?? []) as MatchRow[];
   } catch (error) {
+    const detail = (error as Error).message ?? "";
     console.error("retrieval failed", error);
+
+    // Quota exhaustion is temporary and worth a distinct status: clients should
+    // back off, not treat the whole corpus as broken.
+    if (detail.includes("(429)") || /quota|RESOURCE_EXHAUSTED/i.test(detail)) {
+      return json(
+        {
+          message:
+            "The embedding quota is exhausted right now, so retrieval cannot run. Try again later today.",
+        },
+        429,
+        { "Retry-After": "600" },
+      );
+    }
+
     return json(
       { message: "Retrieval is unavailable right now. Try again shortly." },
       503,
