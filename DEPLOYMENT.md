@@ -109,21 +109,41 @@ the key.
 ### Using a different model provider
 
 `LLM_PROVIDER` selects the model backend for both the Edge Functions and this
-script. Both supported providers emit 768-dimensional vectors, so the schema
-does not change.
+script. Both supported providers are pinned to **1024-dimensional** vectors
+(`gemini-embedding-001` via Matryoshka truncation, `bge-m3` natively), so the
+schema is shared.
 
 | Provider | Free allowance | Embeddings | Chat | Notes |
 | --- | --- | --- | --- | --- |
 | `gemini` | 1,000 embed requests/day | `gemini-embedding-001` | `gemini-2.5-flash` | Multilingual |
-| `cloudflare` | 10,000 Neurons/day | `@cf/baai/bge-base-en-v1.5` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | One token, English-only embeddings |
+| `cloudflare` | 10,000 Neurons/day | `@cf/baai/bge-m3` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | One token, multilingual, OpenAI-compatible |
 
-Cloudflare's multilingual embedders (`@cf/baai/bge-m3`, `@cf/qwen/qwen3-embedding-0.6b`)
-both emit 1024 dimensions and ignore a `dimensions` truncation request, so
-they need the `chunks.embedding` column and `match_chunks` changed to
-`vector(1024)` plus a full re-embed. With `bge-base-en`, Nepali questions are
-embedded by an English-only model: retrieval still returns passages, but
-similarity is unreliable. Use Gemini when bilingual retrieval matters more than
-volume.
+Migration `20260103000000_bilingual_1024.sql` widens `chunks.embedding` and
+`query_cache.embedding` to `vector(1024)` and rebuilds the HNSW index and
+`match_chunks`. Cloudflare's multilingual embedders emit 1024 dimensions and
+ignore a truncation request, so 768 is not an option for Nepali retrieval.
+Changing embedding model always requires re-embedding the corpus (`--replace`):
+vectors from different models are not comparable, even at equal dimensions.
+
+### Visitors using their own key
+
+When the deployment's allowance is spent, `chat` returns `429` with
+`code: "quota_exhausted"` and `action: "paste_key"`. A client can then retry the
+same request carrying its own credential:
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/chat" \
+  -H "apikey: $SUPABASE_ANON_KEY" \
+  -H "x-llm-key: $USER_TOKEN" \
+  -H "x-llm-provider: cloudflare" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"…"}'
+```
+
+The key is used for that request only: it is never logged, never written to
+`query_cache`, and never stored in the database. The web console exposes this as
+a key panel in `/chat` and keeps the value in `sessionStorage` for the tab.
+An invalid key returns `401` with `code: "key_rejected"`.
 
 ```bash
 export LLM_PROVIDER=cloudflare

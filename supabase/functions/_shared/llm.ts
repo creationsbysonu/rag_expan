@@ -1,10 +1,14 @@
 // Provider abstraction for embeddings + chat generation.
 //
-//   LLM_PROVIDER=gemini       Google AI Studio (default; 1,000 embeddings/day free)
+//   LLM_PROVIDER=gemini       Google AI Studio (1,000 embeddings/day free)
 //   LLM_PROVIDER=cloudflare   Cloudflare Workers AI (10,000 neurons/day free)
 //
-// Both produce 768-dimensional vectors, so the pgvector schema is unchanged.
+// Both produce 1024-dimensional vectors, so the pgvector schema is shared.
 // Cloudflare is OpenAI-compatible: one token covers embeddings and chat.
+//
+// Every call accepts optional per-request credentials so a visitor can supply
+// their own key (sent as the x-llm-key header) when the deployment's key is
+// exhausted. Keys are used for that request only and are never stored.
 
 import {
   embedDocuments as geminiEmbedDocuments,
@@ -13,18 +17,25 @@ import {
   type GenerateArgs,
 } from "./gemini.ts";
 
-export const EMBEDDING_DIMS = 768;
+/** bge-m3 / qwen3-embedding output 1024; bge-base-en would be 768. */
+export const EMBEDDING_DIMS = 1024;
 
-type Provider = "gemini" | "cloudflare";
+export type Provider = "gemini" | "cloudflare";
 
-function provider(): Provider {
-  const value = (Deno.env.get("LLM_PROVIDER") ?? "gemini").toLowerCase();
-  return value === "cloudflare" ? "cloudflare" : "gemini";
+export interface Credentials {
+  provider: Provider;
+  apiKey: string;
 }
 
-function cloudflare() {
+function envProvider(): Provider {
+  return (Deno.env.get("LLM_PROVIDER") ?? "gemini").toLowerCase() === "cloudflare"
+    ? "cloudflare"
+    : "gemini";
+}
+
+function cloudflare(apiKeyOverride?: string) {
   const accountId = Deno.env.get("CLOUDFLARE_ACCOUNT_ID");
-  const token = Deno.env.get("CLOUDFLARE_API_TOKEN");
+  const token = apiKeyOverride || Deno.env.get("CLOUDFLARE_API_TOKEN");
   if (!accountId || !token) {
     throw new Error(
       "CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN must be set for LLM_PROVIDER=cloudflare",
@@ -33,9 +44,7 @@ function cloudflare() {
   return {
     base: `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1`,
     token,
-    embedModel: Deno.env.get("CF_EMBED_MODEL") ?? "@cf/baai/bge-base-en-v1.5",
-    // llama-3.1-8b was deprecated in May 2026; 3.3-70b follows the citation
-    // rules far more reliably, which is what the answer quality depends on.
+    embedModel: Deno.env.get("CF_EMBED_MODEL") ?? "@cf/baai/bge-m3",
     chatModel: Deno.env.get("CF_CHAT_MODEL") ?? "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   };
 }
@@ -46,11 +55,11 @@ async function assertOk(response: Response, label: string) {
   throw new Error(`${label} failed (${response.status}): ${detail.slice(0, 400)}`);
 }
 
-/** bge-base-en-v1.5 accepts 512 tokens; ~2,000 characters is a safe ceiling. */
-const CF_MAX_CHARS = 2000;
+/** bge-m3 handles long inputs; keep requests bounded. */
+const CF_MAX_CHARS = 8000;
 
-async function cloudflareEmbed(texts: string[]): Promise<number[][]> {
-  const { base, token, embedModel } = cloudflare();
+async function cloudflareEmbed(texts: string[], apiKeyOverride?: string): Promise<number[][]> {
+  const { base, token, embedModel } = cloudflare(apiKeyOverride);
   const response = await fetch(`${base}/embeddings`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -76,35 +85,47 @@ async function cloudflareEmbed(texts: string[]): Promise<number[][]> {
   return vectors;
 }
 
-export async function embedQuery(text: string): Promise<number[]> {
-  if (provider() === "cloudflare") {
-    const [vector] = await cloudflareEmbed([text]);
-    return vector;
-  }
-  return geminiEmbedQuery(text);
+/** The deployment's own provider, used when a request brings no key. */
+export function serverProvider(): Provider {
+  return envProvider();
 }
 
-export async function embedDocuments(texts: string[]): Promise<number[][]> {
-  if (provider() === "cloudflare") {
-    // The batch endpoint accepts an input array, so 16 at a time keeps the
-    // request bodies small and the Neurons predictable.
+function useProvider(creds?: Credentials): Provider {
+  return creds?.provider ?? envProvider();
+}
+
+export async function embedQuery(text: string, creds?: Credentials): Promise<number[]> {
+  if (useProvider(creds) === "cloudflare") {
+    const [vector] = await cloudflareEmbed([text], creds?.apiKey);
+    return vector;
+  }
+  return geminiEmbedQuery(text, creds?.apiKey);
+}
+
+export async function embedDocuments(texts: string[], creds?: Credentials): Promise<number[][]> {
+  if (useProvider(creds) === "cloudflare") {
     const vectors: number[][] = [];
     for (let offset = 0; offset < texts.length; offset += 16) {
-      vectors.push(...(await cloudflareEmbed(texts.slice(offset, offset + 16))));
+      vectors.push(
+        ...(await cloudflareEmbed(texts.slice(offset, offset + 16), creds?.apiKey)),
+      );
     }
     return vectors;
   }
-  return geminiEmbedDocuments(texts);
+  return geminiEmbedDocuments(texts, creds?.apiKey);
 }
 
 /** Streams plain text deltas, whichever provider is configured. */
-export async function* generateStream(args: GenerateArgs): AsyncGenerator<string> {
-  if (provider() !== "cloudflare") {
-    yield* geminiGenerateStream(args);
+export async function* generateStream(
+  args: GenerateArgs,
+  creds?: Credentials,
+): AsyncGenerator<string> {
+  if (useProvider(creds) !== "cloudflare") {
+    yield* geminiGenerateStream({ ...args, apiKey: creds?.apiKey ?? args.apiKey });
     return;
   }
 
-  const { base, token, chatModel } = cloudflare();
+  const { base, token, chatModel } = cloudflare(creds?.apiKey);
   const response = await fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },

@@ -256,6 +256,31 @@ def stream_answer(question: str, ministry: str | None = None):
               </div>
             ))}
           </div>
+
+          <div className="mt-10 rounded-[6px] border border-brass-500/25 bg-brass-500/[0.04] p-5 md:p-6">
+            <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+              <div>
+                <p className="label-mono text-brass-300">key exhausted?</p>
+                <p className="mt-3 max-w-[44ch] text-[12.5px] leading-relaxed text-bone-300">
+                  The endpoint answers <code className="font-mono text-[11.5px] text-brass-300">429</code>{" "}
+                  with <code className="font-mono text-[11.5px] text-brass-300">code: quota_exhausted</code>{" "}
+                  when the deployment&apos;s free model allowance is spent. Pass the caller&apos;s own key in{" "}
+                  <code className="font-mono text-[11.5px] text-brass-300">x-llm-key</code> and the same
+                  request succeeds — the key is used once, never logged, never stored, and never
+                  written to the shared answer cache.
+                </p>
+              </div>
+              <CodeBlock
+                title="per-request credential"
+                code={`curl -X POST "${SUPABASE_URL}/functions/v1/chat" \\
+  -H "apikey: $SUPABASE_ANON_KEY" \\
+  -H "x-llm-key: $USER_TOKEN" \\
+  -H "x-llm-provider: cloudflare" \\
+  -H "Content-Type: application/json" \\
+  -d '{"question":"Who issues a PAN?"}'`}
+              />
+            </div>
+          </div>
         </div>
       </section>
 

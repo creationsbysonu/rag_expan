@@ -36,11 +36,27 @@ async function authHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
+/** Error carrying the backend's machine-readable reason (e.g. quota_exhausted). */
+export class ApiError extends Error {
+  code?: string;
+  action?: string;
+
+  constructor(message: string, code?: string, action?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.action = action;
+  }
+}
+
 interface StreamChatArgs {
   question: string;
   sessionId: string;
   locale: Locale;
   ministry?: string | null;
+  /** Visitor's own key; sent per request and never persisted server-side. */
+  apiKey?: string;
+  keyProvider?: "cloudflare" | "gemini";
   onEvent: (event: StreamEvent) => void;
   signal?: AbortSignal;
 }
@@ -54,6 +70,8 @@ export async function streamChat({
   sessionId,
   locale,
   ministry,
+  apiKey,
+  keyProvider,
   onEvent,
   signal,
 }: StreamChatArgs): Promise<void> {
@@ -63,6 +81,10 @@ export async function streamChat({
     : `${LOCAL_API.replace(/\/$/, "")}/chat/stream`;
 
   const headers = await authHeaders();
+  if (apiKey) {
+    headers["x-llm-key"] = apiKey;
+    if (keyProvider) headers["x-llm-provider"] = keyProvider;
+  }
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -85,12 +107,17 @@ export async function streamChat({
     // quota; prefer its wording so "wait a minute" is never shown for a limit
     // that lasts hours.
     let serverMessage = "";
+    let code: string | undefined;
+    let action: string | undefined;
     try {
-      serverMessage = String((JSON.parse(detail) as { message?: string }).message ?? "");
+      const parsed = JSON.parse(detail) as { message?: string; code?: string; action?: string };
+      serverMessage = String(parsed.message ?? "");
+      code = parsed.code;
+      action = parsed.action;
     } catch {
       serverMessage = "";
     }
-    if (serverMessage) throw new Error(serverMessage);
+    if (serverMessage) throw new ApiError(serverMessage, code, action);
 
     throw new Error(
       response.status === 429

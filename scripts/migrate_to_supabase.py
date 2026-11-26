@@ -52,7 +52,7 @@ load_project_env()
 
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
 EMBED_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
-DIMS = 768
+DIMS = 1024  # matches the schema after 20260103000000_bilingual_1024.sql
 
 # Embedding provider: "gemini" (default) or "cloudflare" (Workers AI).
 # Must match LLM_PROVIDER in the Edge Functions, or queries and passages end up
@@ -60,8 +60,8 @@ DIMS = 768
 PROVIDER = (os.getenv("LLM_PROVIDER") or "gemini").lower()
 CF_ACCOUNT_ID = os.getenv("CLOUDFLARE_ACCOUNT_ID", "")
 CF_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "")
-CF_EMBED_MODEL = os.getenv("CF_EMBED_MODEL", "@cf/baai/bge-base-en-v1.5")
-CF_MAX_CHARS = 2000  # bge-base-en-v1.5 accepts 512 tokens
+CF_EMBED_MODEL = os.getenv("CF_EMBED_MODEL", "@cf/baai/bge-m3")
+CF_MAX_CHARS = 8000  # bge-m3 handles long passages
 BATCH = 8
 PAUSE_SECONDS = float(os.getenv("EMBED_PAUSE", "1.2"))
 TOTAL_CHUNKS = 0

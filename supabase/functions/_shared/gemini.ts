@@ -2,10 +2,12 @@ const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 export const EMBEDDING_MODEL = Deno.env.get("GEMINI_EMBEDDING_MODEL") ?? "gemini-embedding-001";
 export const CHAT_MODEL = Deno.env.get("GEMINI_CHAT_MODEL") ?? "gemini-2.5-flash";
-export const EMBEDDING_DIMS = 768;
+// 1024 matches the multilingual Cloudflare models so both providers share one
+// pgvector column; gemini-embedding-001 supports Matryoshka truncation.
+export const EMBEDDING_DIMS = 1024;
 
-function apiKey(): string {
-  const key = Deno.env.get("GEMINI_API_KEY") ?? Deno.env.get("GOOGLE_GEMINI_API_KEY");
+function apiKey(override?: string): string {
+  const key = override || Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_GEMINI_API_KEY");
   if (!key) throw new Error("GEMINI_API_KEY is not configured for this project");
   return key;
 }
@@ -17,9 +19,9 @@ async function assertOk(response: Response, label: string) {
 }
 
 /** Query embedding — asymmetric RETRIEVAL_QUERY task type. */
-export async function embedQuery(text: string): Promise<number[]> {
+export async function embedQuery(text: string, keyOverride?: string): Promise<number[]> {
   const response = await fetch(
-    `${API_BASE}/models/${EMBEDDING_MODEL}:embedContent?key=${apiKey()}`,
+    `${API_BASE}/models/${EMBEDDING_MODEL}:embedContent?key=${apiKey(keyOverride)}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -39,14 +41,14 @@ export async function embedQuery(text: string): Promise<number[]> {
 }
 
 /** Document embeddings — RETRIEVAL_DOCUMENT task type, batched. */
-export async function embedDocuments(texts: string[]): Promise<number[][]> {
+export async function embedDocuments(texts: string[], keyOverride?: string): Promise<number[][]> {
   const batchSize = 16;
   const vectors: number[][] = [];
 
   for (let offset = 0; offset < texts.length; offset += batchSize) {
     const batch = texts.slice(offset, offset + batchSize);
     const response = await fetch(
-      `${API_BASE}/models/${EMBEDDING_MODEL}:batchEmbedContents?key=${apiKey()}`,
+      `${API_BASE}/models/${EMBEDDING_MODEL}:batchEmbedContents?key=${apiKey(keyOverride)}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,6 +80,7 @@ export interface GenerateArgs {
   temperature?: number;
   maxOutputTokens?: number;
   signal?: AbortSignal;
+  apiKey?: string;
 }
 
 /** Streams plain text deltas from Gemini's SSE endpoint. */
@@ -87,9 +90,10 @@ export async function* generateStream({
   temperature = 0.25,
   maxOutputTokens = 1400,
   signal,
+  apiKey: keyOverride,
 }: GenerateArgs): AsyncGenerator<string> {
   const response = await fetch(
-    `${API_BASE}/models/${CHAT_MODEL}:streamGenerateContent?alt=sse&key=${apiKey()}`,
+    `${API_BASE}/models/${CHAT_MODEL}:streamGenerateContent?alt=sse&key=${apiKey(keyOverride)}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

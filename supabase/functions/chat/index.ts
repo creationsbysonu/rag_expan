@@ -1,6 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders, json, preflight } from "../_shared/cors.ts";
-import { embedQuery, generateStream } from "../_shared/llm.ts";
+import {
+  embedQuery,
+  generateStream,
+  serverProvider,
+  type Credentials,
+  type Provider,
+} from "../_shared/llm.ts";
 import { detectLanguage, scoreAnswer, truncateContext } from "../_shared/scoring.ts";
 import { clientHash, resolveUser, serviceClient } from "../_shared/supabase.ts";
 
@@ -104,6 +110,20 @@ Deno.serve(async (request: Request) => {
   const user = await resolveUser(request);
   const supabase = serviceClient();
 
+  // Bring-your-own-key: when the deployment's quota is spent, a visitor can
+  // send their own token for this request. It is used in memory only — never
+  // logged, never stored, and never written to the shared cache.
+  const suppliedKey = (request.headers.get("x-llm-key") ?? "").trim();
+  const requestedProvider = (request.headers.get("x-llm-provider") ?? "").trim().toLowerCase();
+  const creds: Credentials | undefined = suppliedKey
+    ? {
+        provider: (requestedProvider === "gemini" || requestedProvider === "cloudflare"
+          ? requestedProvider
+          : serverProvider()) as Provider,
+        apiKey: suppliedKey,
+      }
+    : undefined;
+
   let body: ChatBody;
   try {
     body = (await request.json()) as ChatBody;
@@ -139,11 +159,13 @@ Deno.serve(async (request: Request) => {
   // --- cache --------------------------------------------------------------
   // A repeat question costs nothing here: no embedding, no generation.
   const key = await cacheKey(locale, ministry, question);
-  const { data: cached, error: cacheError } = await supabase
-    .from("query_cache")
-    .select("question, answer, sources, quality_score, embedding, hits, created_at")
-    .eq("cache_key", key)
-    .maybeSingle();
+  const { data: cached, error: cacheError } = creds
+    ? { data: null, error: null }
+    : await supabase
+        .from("query_cache")
+        .select("question, answer, sources, quality_score, embedding, hits, created_at")
+        .eq("cache_key", key)
+        .maybeSingle();
   if (cacheError) console.error("cache read failed", cacheError.message);
 
   const cachedFresh = cached?.created_at
@@ -212,7 +234,7 @@ Deno.serve(async (request: Request) => {
   let matches: MatchRow[] = [];
   let embedding = cachedFresh ? parseVector(cached?.embedding) : null;
   try {
-    if (!embedding || embedding.length !== 768) embedding = await embedQuery(question);
+    if (!embedding || embedding.length !== 1024) embedding = await embedQuery(question, creds);
     const { data, error } = await supabase.rpc("match_chunks", {
       query_embedding: embedding,
       match_threshold: 0.15,
@@ -226,14 +248,32 @@ Deno.serve(async (request: Request) => {
     const detail = (error as Error).message ?? "";
     console.error("retrieval failed", error);
 
-    // Quota exhaustion is temporary and worth a distinct status: clients should
-    // back off, not treat the whole corpus as broken.
-    if (detail.includes("(429)") || /quota|RESOURCE_EXHAUSTED/i.test(detail)) {
+    const exhausted = detail.includes("(429)") || /quota|RESOURCE_EXHAUSTED|neurons/i.test(detail);
+
+    if (creds && (detail.includes("(401)") || detail.includes("(403)"))) {
       return json(
         {
-          message:
-            "The embedding quota is exhausted right now, so retrieval cannot run. Try again later today.",
+          code: "key_rejected",
+          message: `That API key was rejected by ${creds.provider}. Check that it is a valid ${creds.provider} key with model access.`,
         },
+        401,
+      );
+    }
+
+    if (exhausted) {
+      return json(
+        creds
+          ? {
+              code: "quota_exhausted",
+              message:
+                "Your API key has also reached its limit for now. Try again after it resets.",
+            }
+          : {
+              code: "quota_exhausted",
+              action: "paste_key",
+              message:
+                "This deployment's free model quota is used up for today. Paste your own API key to keep asking — it stays in your browser.",
+            },
         429,
         { "Retry-After": "600" },
       );
@@ -292,7 +332,10 @@ Deno.serve(async (request: Request) => {
         });
         // Cache the refusal too — an empty corpus would otherwise spend a
         // request on every visitor. Publishing a document clears the cache.
-        const { error: cacheWriteError } = await supabase.from("query_cache").upsert({
+        // Requests carrying a visitor's own key are never cached.
+        const { error: cacheWriteError } = creds
+          ? { error: null }
+          : await supabase.from("query_cache").upsert({
           cache_key: key,
           question,
           language: locale,
@@ -312,11 +355,14 @@ Deno.serve(async (request: Request) => {
 
       let answer = "";
       try {
-        for await (const delta of generateStream({
-          system,
-          prompt: buildPrompt(question, matches),
-          signal: request.signal,
-        })) {
+        for await (const delta of generateStream(
+          {
+            system,
+            prompt: buildPrompt(question, matches),
+            signal: request.signal,
+          },
+          creds,
+        )) {
           answer += delta;
           send({ type: "token", delta });
         }
@@ -360,7 +406,7 @@ Deno.serve(async (request: Request) => {
       });
       if (logError) console.error("query log failed", logError.message);
 
-      if (answer.trim()) {
+      if (answer.trim() && !creds) {
         const { error: cacheWriteError } = await supabase.from("query_cache").upsert({
           cache_key: key,
           question,

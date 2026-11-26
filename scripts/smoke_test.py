@@ -158,7 +158,7 @@ def main() -> int:
         import uuid
 
         doc_id = str(uuid.uuid4())
-        vector = [0.01] * 768
+        vector = [0.01] * 1024
         insert_doc = request(
             "POST",
             f"{base}/rest/v1/documents",
@@ -276,9 +276,44 @@ def main() -> int:
     )
     check("chat rejects empty body", status in (400, 422), f"HTTP {status}")
 
+    # ------------------------------------------------- bring your own key
+    byok_headers = {
+        "apikey": PUBLISHABLE,
+        "Content-Type": "application/json",
+        "x-llm-key": "cfut_this_key_is_not_real",
+        "x-llm-provider": "cloudflare",
+    }
+    status, _, body = request(
+        "POST",
+        f"{base}/functions/v1/chat",
+        body=json.dumps({"question": "byok probe"}).encode(),
+        headers=byok_headers,
+    )
+    detail = body.decode(errors="replace")
+    check("byok rejects an invalid key", status == 401 and "key_rejected" in detail,
+          f"HTTP {status}")
+
+    visitor_key = os.getenv("CLOUDFLARE_API_TOKEN", "")
+    if visitor_key:
+        status, headers, body = request(
+            "POST",
+            f"{base}/functions/v1/chat",
+            body=json.dumps({"question": "What is the term of the President of Nepal?"}).encode(),
+            headers={**byok_headers, "x-llm-key": visitor_key},
+            timeout=120,
+        )
+        text = body.decode(errors="replace")
+        cached_hit = any(
+            k.lower() == "x-cache" and v.lower() == "hit" for k, v in headers.items()
+        )
+        check("byok answers with a supplied key",
+              status == 200 and '"type":"done"' in text, f"HTTP {status}")
+        check("byok bypasses the shared cache", not cached_hit,
+              "x-cache hit" if cached_hit else "no cache headers")
+
     # ----------------------------------------------------------- query cache
-    # A cached question must be answered without touching Gemini at all — this
-    # is what keeps the free tier usable, and it is testable even at zero quota.
+    # A cached question must be answered without touching the model at all —
+    # this is what keeps the free tier usable, and it is testable at zero quota.
     probe = "Smoke cache probe"
     normalised = re.sub(r"[?!।.,;:\"'`]+$", "", re.sub(r"[\s\u00a0]+", " ", probe.lower())).strip()
     cache_key = hashlib.sha256(f"en||{normalised}".encode()).hexdigest()
@@ -288,7 +323,7 @@ def main() -> int:
         "question": probe,
         "language": "en",
         "ministry": None,
-        "embedding": "[" + ",".join(["0.001"] * 768) + "]",
+        "embedding": "[" + ",".join(["0.001"] * 1024) + "]",
         "answer": cached_answer,
         "sources": [{"title": "Cached source", "similarity": 0.9}],
         "quality_score": 60,

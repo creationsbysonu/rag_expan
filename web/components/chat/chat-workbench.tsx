@@ -6,7 +6,9 @@ import { PanelLeft, Plus, Trash2, X } from "lucide-react";
 import { MessageBlock } from "./message-block";
 import { Composer } from "./composer";
 import { EvidencePanel } from "./evidence-panel";
-import { streamChat, fetchMinistries, backendMode, backendLabel } from "@/lib/api";
+import { ApiError, streamChat, fetchMinistries, backendMode, backendLabel } from "@/lib/api";
+import { KeyPanel } from "./key-panel";
+import { loadKey, type KeyChoice } from "@/lib/api-key";
 import { deleteSession, listSessions, saveSession, type StoredSession } from "@/lib/conversations";
 import { t } from "@/lib/copy";
 import type { ChatMessage, Locale } from "@/lib/types";
@@ -26,6 +28,9 @@ export function ChatWorkbench() {
   const [ministries, setMinistries] = useState<string[]>([]);
   const [ministry, setMinistry] = useState<string | null>(null);
   const [railOpen, setRailOpen] = useState(false);
+  const [ownKey, setOwnKey] = useState<KeyChoice | null>(null);
+  const [keyOpen, setKeyOpen] = useState(false);
+  const [quotaHit, setQuotaHit] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -38,6 +43,8 @@ export function ChatWorkbench() {
     fetchMinistries().then(setMinistries).catch(() => undefined);
     const stored = window.localStorage.getItem("sarkar.locale");
     if (stored === "ne" || stored === "en") setLocale(stored);
+    const key = loadKey();
+    if (key) setOwnKey(key);
   }, []);
 
   useEffect(() => {
@@ -113,6 +120,8 @@ export function ChatWorkbench() {
           sessionId,
           locale,
           ministry,
+          apiKey: ownKey?.key,
+          keyProvider: ownKey?.provider,
           signal: controller.signal,
           onEvent: (event) => {
             if (event.type === "token") {
@@ -172,7 +181,15 @@ export function ChatWorkbench() {
               : message,
           ),
         );
-        if (!aborted) toast.error((error as Error).message || copy.errorGeneric);
+        if (!aborted) {
+          const apiError = error as ApiError;
+          toast.error(apiError.message || copy.errorGeneric);
+          // The deployment's free allowance is spent: offer the visitor's own key.
+          if (apiError.code === "quota_exhausted") {
+            setQuotaHit(true);
+            setKeyOpen(true);
+          }
+        }
       } finally {
         setStreaming(false);
         abortRef.current = null;
@@ -183,7 +200,7 @@ export function ChatWorkbench() {
         );
       }
     },
-    [copy.errorGeneric, locale, ministry, sessionId, streaming],
+    [copy.errorGeneric, locale, ministry, ownKey, sessionId, streaming],
   );
 
   function stop() {
@@ -415,6 +432,17 @@ export function ChatWorkbench() {
             )}
           </div>
         </div>
+
+        <KeyPanel
+          open={keyOpen}
+          onOpenChange={setKeyOpen}
+          current={ownKey}
+          onChange={(choice) => {
+            setOwnKey(choice);
+            if (choice) setQuotaHit(false);
+          }}
+          exhausted={quotaHit}
+        />
 
         <Composer
           onSend={send}
