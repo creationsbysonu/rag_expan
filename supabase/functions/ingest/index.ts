@@ -153,6 +153,14 @@ Deno.serve(async (request: Request) => {
       .update({ ingest_status: "ready" })
       .eq("id", document.id);
 
+    // New source material invalidates every cached answer: a previously
+    // "not in the record" refusal may now be answerable.
+    const { error: purgeError } = await supabase
+      .from("query_cache")
+      .delete()
+      .gte("created_at", "1970-01-01T00:00:00Z");
+    if (purgeError) console.error("cache purge failed", purgeError.message);
+
     return json({
       document_id: document.id,
       title,

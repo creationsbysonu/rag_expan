@@ -15,8 +15,10 @@ Exit code is 0 only when every check passes.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -106,6 +108,20 @@ def main() -> int:
             f"{base}/rest/v1/rpc/{name}",
             body=json.dumps(payload).encode(),
             headers={"apikey": key, "Content-Type": "application/json"},
+        )
+
+    def rest(method: str, path: str, payload: dict | None = None, extra: dict | None = None):
+        headers = {
+            "apikey": service,
+            "Authorization": f"Bearer {service}",
+            "Content-Type": "application/json",
+        }
+        headers.update(extra or {})
+        return request(
+            method,
+            f"{base}/rest/v1/{path}",
+            body=json.dumps(payload).encode() if payload is not None else None,
+            headers=headers,
         )
 
     status, _, body = rpc("corpus_stats", {})
@@ -260,6 +276,45 @@ def main() -> int:
     )
     check("chat rejects empty body", status in (400, 422), f"HTTP {status}")
 
+    # ----------------------------------------------------------- query cache
+    # A cached question must be answered without touching Gemini at all — this
+    # is what keeps the free tier usable, and it is testable even at zero quota.
+    probe = "Smoke cache probe"
+    normalised = re.sub(r"[?!।.,;:\"'`]+$", "", re.sub(r"[\s\u00a0]+", " ", probe.lower())).strip()
+    cache_key = hashlib.sha256(f"en||{normalised}".encode()).hexdigest()
+    cached_answer = "Cached smoke answer with a citation [1]."
+    seed = {
+        "cache_key": cache_key,
+        "question": probe,
+        "language": "en",
+        "ministry": None,
+        "embedding": "[" + ",".join(["0.001"] * 768) + "]",
+        "answer": cached_answer,
+        "sources": [{"title": "Cached source", "similarity": 0.9}],
+        "quality_score": 60,
+        "hits": 0,
+    }
+    try:
+        seeded, _, _ = rest("POST", "query_cache", seed,
+                             extra={"Prefer": "return=minimal,resolution=merge-duplicates"})
+        check("cache row seeded", seeded in (200, 201), f"HTTP {seeded}")
+
+        status, headers, body = request(
+            "POST",
+            f"{base}/functions/v1/chat",
+            body=json.dumps({"question": probe.lower()}).encode(),
+            headers={"apikey": PUBLISHABLE, "Content-Type": "application/json"},
+            timeout=60,
+        )
+        text = body.decode(errors="replace")
+        hit = header("x-cache").strip() == "hit"
+        check("cached question answers without Gemini",
+              status == 200 and hit and cached_answer.split(" [")[0] in text,
+              f"HTTP {status} x-cache={header('x-cache') or 'miss'}")
+        check("cached response marks itself", '"cached":true' in text, "cached flag present")
+    finally:
+        rest("DELETE", f"query_cache?cache_key=eq.{cache_key}")
+
     # -------------------------------------------------------------- ingest
     boundary = "----smokeboundary"
     empty = f"--{boundary}--\r\n".encode()
@@ -326,13 +381,16 @@ def main() -> int:
     check("ingest accepts a valid file", status in (200, 429),
           f"HTTP {status} — {detail}")
 
-    if status == 429 and service:
+    # Leave the corpus exactly as it was: a successful upload created real
+    # chunks, a failed one left a document row behind. Both go away here.
+    if service:
+        # chunks cascade from documents, so removing the document is enough
         request(
             "DELETE",
             f"{base}/rest/v1/documents?title=eq.Smoke%20test%20document",
             headers={"apikey": service, "Authorization": f"Bearer {service}"},
         )
-        print("  (cleaned up the failed smoke-test document)")
+        print("  (cleaned up the smoke-test document)")
 
     # --------------------------------------------------------------- report
     passed = sum(1 for ok, _, _ in results if ok)

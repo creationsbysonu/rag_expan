@@ -66,6 +66,36 @@ function buildPrompt(question: string, matches: MatchRow[]): string {
   return `SOURCE PASSAGES\n\n${truncateContext(blocks.join("\n\n"), 12000)}\n\nQUESTION\n${question}\n\nAnswer with citations.`;
 }
 
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Question → stable cache key (case, spacing and trailing punctuation ignored). */
+async function cacheKey(locale: string, ministry: string | null, question: string): Promise<string> {
+  const normalized = question
+    .toLowerCase()
+    .replace(/[\s\u00a0]+/g, " ")
+    .replace(/[?!।.,;:"'`]+$/g, "")
+    .trim();
+  const bytes = new TextEncoder().encode(`${locale}|${ministry ?? ""}|${normalized}`);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/** PostgREST returns pgvector columns as text; accept either shape. */
+function parseVector(value: unknown): number[] | null {
+  if (Array.isArray(value)) return value.map(Number);
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.map(Number) : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return preflight();
   if (request.method !== "POST") return json({ message: "Method not allowed" }, 405);
@@ -106,10 +136,83 @@ Deno.serve(async (request: Request) => {
     });
   }
 
+  // --- cache --------------------------------------------------------------
+  // A repeat question costs nothing here: no embedding, no generation.
+  const key = await cacheKey(locale, ministry, question);
+  const { data: cached, error: cacheError } = await supabase
+    .from("query_cache")
+    .select("question, answer, sources, quality_score, embedding, hits, created_at")
+    .eq("cache_key", key)
+    .maybeSingle();
+  if (cacheError) console.error("cache read failed", cacheError.message);
+
+  const cachedFresh = cached?.created_at
+    ? Date.now() - new Date(cached.created_at).getTime() < CACHE_TTL_MS
+    : false;
+
+  if (cachedFresh && cached?.answer) {
+    const answer = cached.answer as string;
+    const sources = (cached.sources ?? []) as unknown[];
+    const latency = Math.round(performance.now() - startedAt);
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream({
+      start(controller) {
+        const send = (payload: unknown) =>
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+
+        send({ type: "sources", sources });
+        for (const chunk of answer.match(/.{1,18}/gu) ?? [answer]) {
+          send({ type: "token", delta: chunk });
+        }
+        send({
+          type: "done",
+          text: answer,
+          quality_score: cached.quality_score,
+          latency_ms: latency,
+          cached: true,
+        });
+        controller.close();
+
+        void supabase
+          .from("query_cache")
+          .update({ hits: (cached.hits ?? 0) + 1, last_used_at: new Date().toISOString() })
+          .eq("cache_key", key)
+          .then(({ error }) => {
+            if (error) console.error("cache hit update failed", error.message);
+          });
+        void supabase.from("query_logs").insert({
+          user_id: user?.id ?? null,
+          conversation_id: body.conversation_id ?? null,
+          question,
+          answer_chars: answer.length,
+          language: locale,
+          ministry,
+          quality_score: cached.quality_score,
+          latency_ms: latency,
+          matched_chunks: sources.length,
+          client_hash: hash,
+        });
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+        "X-Cache": "hit",
+      },
+    });
+  }
+
   // --- retrieval ----------------------------------------------------------
   let matches: MatchRow[] = [];
+  let embedding = cachedFresh ? parseVector(cached?.embedding) : null;
   try {
-    const embedding = await embedQuery(question);
+    if (!embedding || embedding.length !== 768) embedding = await embedQuery(question);
     const { data, error } = await supabase.rpc("match_chunks", {
       query_embedding: embedding,
       match_threshold: 0.15,
@@ -187,6 +290,22 @@ Deno.serve(async (request: Request) => {
           matched_chunks: 0,
           client_hash: hash,
         });
+        // Cache the refusal too — an empty corpus would otherwise spend a
+        // request on every visitor. Publishing a document clears the cache.
+        const { error: cacheWriteError } = await supabase.from("query_cache").upsert({
+          cache_key: key,
+          question,
+          language: locale,
+          ministry,
+          embedding: `[${embedding!.join(",")}]`,
+          answer: refusal,
+          sources: [],
+          quality_score: 24,
+          hits: 0,
+          created_at: new Date().toISOString(),
+          last_used_at: new Date().toISOString(),
+        });
+        if (cacheWriteError) console.error("cache write failed", cacheWriteError.message);
         controller.close();
         return;
       }
@@ -240,6 +359,23 @@ Deno.serve(async (request: Request) => {
         client_hash: hash,
       });
       if (logError) console.error("query log failed", logError.message);
+
+      if (answer.trim()) {
+        const { error: cacheWriteError } = await supabase.from("query_cache").upsert({
+          cache_key: key,
+          question,
+          language: locale,
+          ministry,
+          embedding: `[${embedding!.join(",")}]`,
+          answer,
+          sources,
+          quality_score: quality,
+          hits: 0,
+          created_at: new Date().toISOString(),
+          last_used_at: new Date().toISOString(),
+        });
+        if (cacheWriteError) console.error("cache write failed", cacheWriteError.message);
+      }
     },
   });
 

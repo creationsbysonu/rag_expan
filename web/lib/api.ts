@@ -80,10 +80,22 @@ export async function streamChat({
 
   if (!response.ok || !response.body) {
     const detail = await response.text().catch(() => "");
+
+    // The backend distinguishes a short rate limit from an exhausted embedding
+    // quota; prefer its wording so "wait a minute" is never shown for a limit
+    // that lasts hours.
+    let serverMessage = "";
+    try {
+      serverMessage = String((JSON.parse(detail) as { message?: string }).message ?? "");
+    } catch {
+      serverMessage = "";
+    }
+    if (serverMessage) throw new Error(serverMessage);
+
     throw new Error(
       response.status === 429
         ? "Rate limit reached. Wait a minute and try again."
-        : detail || `Request failed (${response.status})`,
+        : detail.slice(0, 300) || `Request failed (${response.status})`,
     );
   }
 
