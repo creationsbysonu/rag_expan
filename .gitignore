@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Local env and secrets
+.env
+.env.local
+.env*.local
+
+# Data, logs, uploads
+logs/
+uploads/
+data/rag.db
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Supabase CLI artifacts
+supabase/.temp/
