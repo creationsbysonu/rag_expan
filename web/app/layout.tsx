@@ -36,6 +36,8 @@ export const metadata: Metadata = {
     title: "सरकार · Record Index",
     description: "Grounded, cited answers over Nepal's public record.",
   },
+  authors: [{ name: "Sonu Kumar Gupta", url: "https://github.com/creationsbysonu" }],
+  creator: "Sonu Kumar Gupta",
   robots: { index: true, follow: true },
 };
 

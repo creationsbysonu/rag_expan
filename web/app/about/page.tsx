@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Github } from "lucide-react";
 import { SiteFooter } from "@/components/site-footer";
 
 export const metadata: Metadata = {
   title: "Method",
   description:
     "How the retrieval system works: chunking, multilingual embeddings, pgvector search, grounded generation and citation policy.",
+  authors: [{ name: "Sonu Kumar Gupta", url: "https://github.com/creationsbysonu" }],
 };
 
 const stack = [
@@ -124,6 +126,38 @@ export default function AboutPage() {
               </li>
             </ul>
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-bone-100/10">
+        <div className="mx-auto flex max-w-[1240px] flex-col gap-6 px-5 py-14 md:flex-row md:items-center md:justify-between md:px-8">
+          <div className="flex items-center gap-5">
+            <Image
+              src="/sonu-kumar-gupta.jpg"
+              alt="Sonu Kumar Gupta"
+              width={72}
+              height={72}
+              className="h-[72px] w-[72px] rounded-full border border-bone-100/15 object-cover"
+            />
+            <div>
+              <p className="label-mono">Built &amp; maintained by</p>
+              <p className="mt-2 font-display text-[22px] leading-none text-bone-50">
+                Sonu Kumar Gupta
+              </p>
+              <p className="mt-2 text-[12.5px] leading-relaxed text-bone-400">
+                Retrieval design, ingestion pipeline and the interface you are reading.
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://github.com/creationsbysonu"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-10 w-fit items-center gap-2 rounded-[5px] border border-bone-100/20 px-4 text-[12.5px] text-bone-200 transition-colors hover:border-brass-400/50 hover:text-brass-300"
+          >
+            <Github className="h-3.5 w-3.5" />
+            github.com/creationsbysonu
+          </a>
         </div>
       </section>
 

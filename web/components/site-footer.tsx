@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Wordmark } from "./brand";
 
@@ -62,15 +63,37 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-14 flex flex-col gap-3 border-t border-bone-100/8 pt-6 md:flex-row md:items-center md:justify-between">
+        <div className="mt-14 flex flex-col gap-6 border-t border-bone-100/8 pt-6 md:flex-row md:items-center md:justify-between">
+          <Link
+            href="https://github.com/creationsbysonu"
+            target="_blank"
+            rel="noreferrer"
+            className="group flex items-center gap-3.5"
+          >
+            <Image
+              src="/sonu-kumar-gupta.jpg"
+              alt="Sonu Kumar Gupta"
+              width={44}
+              height={44}
+              className="h-11 w-11 rounded-full border border-bone-100/15 object-cover grayscale transition duration-300 group-hover:grayscale-0"
+            />
+            <span>
+              <span className="label-mono block">Built &amp; maintained by</span>
+              <span className="mt-1 block text-[13px] text-bone-200 transition-colors group-hover:text-brass-300">
+                Sonu Kumar Gupta
+                <span className="ml-1.5 font-mono text-[10.5px] text-bone-500">@creationsbysonu</span>
+              </span>
+            </span>
+          </Link>
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-bone-500">
             © {new Date().getFullYear()} सरकार Record Index · Kathmandu
           </p>
-          <p className="max-w-[60ch] text-[11px] leading-relaxed text-bone-500">
-            Unaffiliated research prototype. Verify every answer against the original gazette,
-            notice or ministry publication.
-          </p>
         </div>
+
+        <p className="mt-5 max-w-[62ch] text-[11px] leading-relaxed text-bone-500">
+          Unaffiliated research prototype. Verify every answer against the original gazette,
+          notice or ministry publication.
+        </p>
       </div>
     </footer>
   );
