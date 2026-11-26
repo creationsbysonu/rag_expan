@@ -34,7 +34,9 @@ function cloudflare() {
     base: `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1`,
     token,
     embedModel: Deno.env.get("CF_EMBED_MODEL") ?? "@cf/baai/bge-base-en-v1.5",
-    chatModel: Deno.env.get("CF_CHAT_MODEL") ?? "@cf/meta/llama-3.1-8b-instruct",
+    // llama-3.1-8b was deprecated in May 2026; 3.3-70b follows the citation
+    // rules far more reliably, which is what the answer quality depends on.
+    chatModel: Deno.env.get("CF_CHAT_MODEL") ?? "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   };
 }
 

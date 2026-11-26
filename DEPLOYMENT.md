@@ -115,7 +115,15 @@ does not change.
 | Provider | Free allowance | Embeddings | Chat | Notes |
 | --- | --- | --- | --- | --- |
 | `gemini` | 1,000 embed requests/day | `gemini-embedding-001` | `gemini-2.5-flash` | Multilingual |
-| `cloudflare` | 10,000 Neurons/day | `@cf/baai/bge-base-en-v1.5` | `@cf/meta/llama-3.1-8b-instruct` | One token, English-only embeddings |
+| `cloudflare` | 10,000 Neurons/day | `@cf/baai/bge-base-en-v1.5` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | One token, English-only embeddings |
+
+Cloudflare's multilingual embedders (`@cf/baai/bge-m3`, `@cf/qwen/qwen3-embedding-0.6b`)
+both emit 1024 dimensions and ignore a `dimensions` truncation request, so
+they need the `chunks.embedding` column and `match_chunks` changed to
+`vector(1024)` plus a full re-embed. With `bge-base-en`, Nepali questions are
+embedded by an English-only model: retrieval still returns passages, but
+similarity is unreliable. Use Gemini when bilingual retrieval matters more than
+volume.
 
 ```bash
 export LLM_PROVIDER=cloudflare
