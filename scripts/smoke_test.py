@@ -359,7 +359,7 @@ def main() -> int:
         body=empty,
         headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
     )
-    check("ingest requires admin", status == 403, f"HTTP {status}")
+    check("ingest requires sign-in or the ingest secret", status == 401, f"HTTP {status}")
 
     def multipart(filename: str, content: bytes, fields: dict[str, str]) -> bytes:
         parts = []
@@ -426,6 +426,16 @@ def main() -> int:
     # Removal is scoped to the uploader or an admin; the shared ingest secret
     # acts as an operator. The corpus is public, so an anonymous reader may not
     # delete from it.
+    def in_listing() -> tuple[bool, str]:
+        status, _, body = rpc(
+            "search_documents",
+            {"search_query": "Smoke test document", "filter_ministry": None, "max_rows": 5},
+        )
+        rows = json.loads(body) if status == 200 else []
+        present = isinstance(rows, list) and any(r.get("id") == document_id for r in rows)
+        return present, f"{len(rows) if isinstance(rows, list) else '?'} rows, HTTP {status}"
+
+    operator = {"apikey": PUBLISHABLE, "x-ingest-secret": secret}
     if document_id:
         status, _, body = request(
             "DELETE",
@@ -438,10 +448,30 @@ def main() -> int:
         status, _, body = request(
             "DELETE",
             f"{base}/functions/v1/documents?id={document_id}",
-            headers={"apikey": PUBLISHABLE, "x-ingest-secret": secret},
+            headers=operator,
         )
-        check("document delete removes the upload",
-              status == 200 and document_id.encode() in body, f"HTTP {status}")
+        check("document moves to trash",
+              status == 200 and b"purge_at" in body, f"HTTP {status}")
+
+        listed, detail = in_listing()
+        check("trashed document leaves the corpus", not listed, detail)
+
+        status, _, body = request(
+            "POST",
+            f"{base}/functions/v1/documents?id={document_id}&action=restore",
+            headers=operator,
+        )
+        check("document restores from trash", status == 200, f"HTTP {status}")
+
+        listed, detail = in_listing()
+        check("restored document is citable again", listed, detail)
+
+        status, _, body = request(
+            "POST",
+            f"{base}/functions/v1/documents?id={document_id}&action=purge",
+            headers=operator,
+        )
+        check("document purges permanently", status == 200, f"HTTP {status}")
 
     # Leave the corpus exactly as it was, even when the delete path above failed.
     if service:

@@ -61,6 +61,34 @@ export interface DocumentRow {
   source_url: string | null;
   /** Account that ingested it; null when published with the ingest secret. */
   uploaded_by?: string | null;
+  deleted_at?: string | null;
+  ingest_status?: string | null;
+}
+
+/** A document in the trash, visible to its uploader and to admins. */
+export interface TrashRow {
+  id: string;
+  title: string;
+  ministry: string | null;
+  notice_id: string | null;
+  chunk_count: number | null;
+  uploaded_by: string | null;
+  deleted_at: string;
+  purge_at: string;
+}
+
+/** One of the signed-in account's own uploads, including its trash state. */
+export interface MyDocumentRow {
+  id: string;
+  title: string;
+  ministry: string | null;
+  notice_id: string | null;
+  chunk_count: number | null;
+  ingest_status: string | null;
+  language: string | null;
+  created_at: string;
+  deleted_at: string | null;
+  purge_at: string | null;
 }
 
 export interface CorpusStats {

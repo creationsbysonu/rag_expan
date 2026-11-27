@@ -25,7 +25,13 @@ export async function resolveUser(request: Request) {
   const client = anonClient();
   const { data, error } = await client.auth.getUser(token);
   if (error || !data.user) return null;
-  return { id: data.user.id, email: data.user.email ?? null };
+  const user = data.user as typeof data.user & { is_anonymous?: boolean };
+  return {
+    id: user.id,
+    email: user.email ?? null,
+    // Visitors can chat without an account; anonymous sessions may not publish.
+    isAnonymous: user.is_anonymous ?? !user.email,
+  };
 }
 
 export function clientHash(request: Request): string {

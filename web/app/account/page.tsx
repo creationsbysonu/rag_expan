@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { MyUploads } from "@/components/documents/my-uploads";
 import { getViewer } from "@/lib/supabase/server";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -49,6 +50,8 @@ export default async function AccountPage() {
               </Link>
               <SignOutButton />
             </div>
+
+            <MyUploads anonymous={viewer.isAnonymous} />
           </>
         ) : (
           <div className="mt-6">

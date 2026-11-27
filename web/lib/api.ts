@@ -6,8 +6,10 @@ import type {
   DashboardStats,
   DocumentRow,
   Locale,
+  MyDocumentRow,
   SourceRef,
   StreamEvent,
+  TrashRow,
 } from "./types";
 
 const LOCAL_API =
@@ -274,30 +276,63 @@ export async function fetchDocuments({
   }
 }
 
-/**
- * Removes a document you uploaded; admins may remove any document. The edge
- * function owns authorisation, storage cleanup and cache invalidation.
- */
-export async function deleteDocument(id: string): Promise<void> {
-  if (!isSupabaseConfigured) {
-    throw new ApiError("Removing documents needs the hosted backend.", "local_mode");
-  }
-  const response = await fetch(
-    `${SUPABASE_URL}/functions/v1/documents?id=${encodeURIComponent(id)}`,
-    { method: "DELETE", headers: await authHeaders() },
-  );
-  if (response.ok) return;
+type DocumentAction = "trash" | "restore" | "purge";
 
-  let message = `Could not remove the document (HTTP ${response.status})`;
-  let code: string | undefined;
+/**
+ * Calls the `documents` edge function, which owns authorisation, storage cleanup
+ * and cache invalidation. Trash is reversible for seven days.
+ */
+async function documentAction(id: string, action: DocumentAction) {
+  if (!isSupabaseConfigured) {
+    throw new ApiError("Changing documents needs the hosted backend.", "local_mode");
+  }
+  const query = `id=${encodeURIComponent(id)}&action=${action}`;
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/documents?${query}`, {
+    method: action === "trash" ? "DELETE" : "POST",
+    headers: await authHeaders(),
+  });
+
+  let payload: { message?: string; code?: string; purge_at?: string } = {};
   try {
-    const data = (await response.json()) as { message?: string; code?: string };
-    if (data.message) message = data.message;
-    code = data.code;
+    payload = await response.json();
   } catch {
     // non-JSON error body
   }
-  throw new ApiError(message, code);
+  if (!response.ok) {
+    throw new ApiError(
+      payload.message ?? `Could not ${action} the document (HTTP ${response.status})`,
+      payload.code,
+    );
+  }
+  return payload;
+}
+
+/** Moves a document to the trash. Returns when it will be purged for good. */
+export async function deleteDocument(id: string): Promise<{ purgeAt: string | null }> {
+  const payload = await documentAction(id, "trash");
+  return { purgeAt: payload.purge_at ?? null };
+}
+
+export async function restoreDocument(id: string): Promise<void> {
+  await documentAction(id, "restore");
+}
+
+export async function purgeDocument(id: string): Promise<void> {
+  await documentAction(id, "purge");
+}
+
+export async function fetchTrash(): Promise<TrashRow[]> {
+  const rows = await rpc<TrashRow[]>("trashed_documents", {});
+  return rows ?? [];
+}
+
+export async function fetchMyDocuments(): Promise<MyDocumentRow[]> {
+  const rows = await rpc<MyDocumentRow[]>("my_documents", {});
+  return rows ?? [];
+}
+
+export async function fetchUploadUsage(): Promise<{ limit: number; used: number } | null> {
+  return rpc<{ limit: number; used: number }>("my_upload_usage", {});
 }
 
 export async function fetchMinistries(): Promise<string[]> {

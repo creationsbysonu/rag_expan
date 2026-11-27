@@ -42,22 +42,33 @@ function chunkText(text: string): string[] {
   return chunks;
 }
 
-async function isAdmin(request: Request, userId: string | null): Promise<boolean> {
+const DAILY_UPLOAD_LIMIT = Number(Deno.env.get("UPLOAD_DAILY_LIMIT") ?? "10");
+
+/** Scripted ingestion via the shared secret skips the per-account allowance. */
+function hasIngestSecret(request: Request): boolean {
   const secret = Deno.env.get("INGEST_SECRET");
-  if (secret && request.headers.get("x-ingest-secret") === secret) return true;
-  if (!userId) return false;
-  const supabase = serviceClient();
-  const { data } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
-  return data?.role === "admin";
+  return Boolean(secret) && request.headers.get("x-ingest-secret") === secret;
 }
 
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return preflight();
   if (request.method !== "POST") return json({ message: "Method not allowed" }, 405);
 
-  const user = await resolveUser(request);
-  if (!(await isAdmin(request, user?.id ?? null))) {
-    return json({ message: "Ingestion requires an admin account or ingest secret." }, 403);
+  // Publishing is open to any signed-in person: the uploader owns the document
+  // and can retract it. Anonymous chat sessions may not write to the corpus.
+  const operator = hasIngestSecret(request);
+  const user = operator ? null : await resolveUser(request);
+  if (!operator) {
+    if (!user) return json({ message: "Sign in to publish a document.", code: "auth_required" }, 401);
+    if (user.isAnonymous) {
+      return json(
+        {
+          message: "Anonymous sessions cannot publish. Sign in with an email account.",
+          code: "anonymous_session",
+        },
+        403,
+      );
+    }
   }
 
   let form: FormData;
@@ -83,6 +94,25 @@ Deno.serve(async (request: Request) => {
   const languageHint = String(form.get("language") ?? "").trim();
 
   const supabase = serviceClient();
+
+  if (user) {
+    const { count } = await supabase
+      .from("documents")
+      .select("id", { count: "exact", head: true })
+      .eq("uploaded_by", user.id)
+      .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+    if ((count ?? 0) >= DAILY_UPLOAD_LIMIT) {
+      return json(
+        {
+          message: `You have published ${count} documents in the last 24 hours, which is the daily limit. Try again tomorrow.`,
+          code: "upload_limit",
+          limit: DAILY_UPLOAD_LIMIT,
+        },
+        429,
+      );
+    }
+  }
 
   let text: string;
   let pages: number | null = null;

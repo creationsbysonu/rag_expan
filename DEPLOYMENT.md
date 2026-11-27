@@ -65,14 +65,25 @@ supabase functions deploy documents --no-verify-jwt
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected
-automatically. `chat` is public (rate-limited per user/IP); `ingest` requires an
-admin profile or the `x-ingest-secret` header.
+automatically. `chat` is public (rate-limited per user/IP). `ingest` is open to
+any signed-in account — anonymous chat sessions are refused — with an allowance
+of `UPLOAD_DAILY_LIMIT` documents per account per 24 hours (default 10); the
+`x-ingest-secret` header bypasses the allowance for scripted ingestion.
 
-`documents` only answers `DELETE /functions/v1/documents?id=<uuid>`. A document
-may be removed by the account that uploaded it or by an admin; the shared
-`x-ingest-secret` header counts as an operator for scripted cleanup. Deletion
-removes the stored original, cascades the passages, and clears `query_cache`,
-since a cached answer may cite a passage that no longer exists.
+`documents` owns the lifecycle of an upload. Authorised for the uploader, an
+admin, or `x-ingest-secret`:
+
+| Request | Effect |
+|---|---|
+| `DELETE /functions/v1/documents?id=<uuid>` | Move to trash (`deleted_at`) |
+| `POST …?id=<uuid>&action=restore` | Put it back in the corpus |
+| `POST …?id=<uuid>&action=purge` | Delete permanently |
+
+Trash is a soft delete. Passages and the stored original are kept for seven days
+(`public.trash_retention()`), hidden from retrieval, listings and corpus stats,
+so a restore is instant. Expired trash is purged lazily on the next call to the
+function. Any change clears `query_cache` — a cached answer may cite a passage
+that is no longer retrievable, or miss one that has returned.
 
 ### One-shot alternative
 

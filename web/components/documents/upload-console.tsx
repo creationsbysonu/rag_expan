@@ -21,6 +21,7 @@ type SessionState = {
   email: string | null;
   role: string | null;
   token: string | null;
+  anonymous: boolean;
   loading: boolean;
 };
 
@@ -29,6 +30,7 @@ export function UploadConsole() {
     email: null,
     role: null,
     token: null,
+    anonymous: false,
     loading: true,
   });
   const [file, setFile] = useState<File | null>(null);
@@ -47,7 +49,7 @@ export function UploadConsole() {
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      setSession({ email: null, role: null, token: null, loading: false });
+      setSession({ email: null, role: null, token: null, anonymous: false, loading: false });
       return;
     }
     const supabase = createClient();
@@ -68,6 +70,7 @@ export function UploadConsole() {
         email: user?.email ?? null,
         role,
         token: data.session?.access_token ?? null,
+        anonymous: Boolean(user && ((user as { is_anonymous?: boolean }).is_anonymous ?? !user.email)),
         loading: false,
       });
     });
@@ -97,7 +100,7 @@ export function UploadConsole() {
     event.preventDefault();
     if (!file || !title.trim() || busy) return;
     if (!session.token) {
-      setError("Sign in with an admin account first.");
+      setError("Sign in to publish a document.");
       return;
     }
 
@@ -125,12 +128,16 @@ export function UploadConsole() {
       };
 
       if (!response.ok) {
-        if (response.status === 403) {
+        if (response.status === 401) {
+          setError("Sign in to publish a document.");
+        } else if (response.status === 403) {
           setError(
-            "This account is not an admin. Run scripts/grant_admin.py for your email, then reload.",
+            payload.message ?? "Anonymous sessions cannot publish. Sign in with an email account.",
           );
         } else if (response.status === 429) {
-          setError("Embedding quota reached for today. Try again after the quota resets.");
+          setError(
+            payload.message ?? "Embedding quota reached for today. Try again after the quota resets.",
+          );
         } else {
           setError(payload.message ?? `Upload failed (${response.status}).`);
         }
@@ -173,10 +180,10 @@ export function UploadConsole() {
     return (
       <div className="panel p-6">
         <p className="label-mono">Sign-in required</p>
-        <h2 className="mt-3 font-display text-[24px] text-bone-50">Only curators can publish.</h2>
+        <h2 className="mt-3 font-display text-[24px] text-bone-50">Sign in to publish.</h2>
         <p className="mt-3 max-w-[52ch] text-[13px] leading-relaxed text-bone-400">
-          Ingesting a document writes passages into the shared corpus that every visitor can cite,
-          so it requires an admin account. Sign in, then come back to this page.
+          Any signed-in person can add a document, and the account that published it stays attached
+          to it. Anonymous sessions can ask questions but not write to the shared corpus.
         </p>
         <Link
           href="/login"
@@ -188,7 +195,7 @@ export function UploadConsole() {
     );
   }
 
-  const notAdmin = !session.loading && session.token && session.role !== "admin";
+  const cannotPublish = !session.loading && Boolean(session.token) && session.anonymous;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
@@ -332,7 +339,7 @@ export function UploadConsole() {
 
           <button
             type="submit"
-            disabled={busy || !file || !title.trim() || Boolean(notAdmin)}
+            disabled={busy || !file || !title.trim() || cannotPublish}
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[5px] bg-bone-50 text-[13.5px] font-medium text-ink-950 transition-colors hover:bg-brass-200 disabled:cursor-not-allowed disabled:bg-bone-100/20 disabled:text-bone-500"
           >
             {busy ? (
@@ -358,7 +365,7 @@ export function UploadConsole() {
             {[
               ["Extract", "Text is pulled from the PDF/TXT inside the Edge Function."],
               ["Chunk", "150-word windows with 30-word overlap, matching the Python defaults."],
-              ["Embed", "768-dim values from gemini-embedding-001."],
+              ["Embed", "1024-dim multilingual values, so Nepali and English share one space."],
               ["Store", "Rows land in chunks with an HNSW index; the file in Storage."],
             ].map(([step, detail], index) => (
               <li key={step} className="flex gap-3">
@@ -380,15 +387,19 @@ export function UploadConsole() {
           <span className="label-mono">Account</span>
           <p className="mt-3 truncate text-[12.5px] text-bone-200">{session.email ?? "—"}</p>
           <p className="mt-2 font-mono text-[9.5px] uppercase tracking-[0.12em] text-bone-500">
-            role · {session.loading ? "checking" : (session.role ?? "none")}
+            {session.loading
+              ? "checking"
+              : `${session.anonymous ? "anonymous session" : "signed in"} · ${session.role ?? "user"}`}
           </p>
-          {notAdmin && (
+          {cannotPublish && (
             <p className="mt-3 text-[11.5px] leading-relaxed text-bone-400">
-              Publishing needs the <code>admin</code> role. From the repo run{" "}
-              <code className="text-bone-200">python3 scripts/grant_admin.py {session.email}</code>{" "}
-              then reload.
+              This is an anonymous session. Sign in with an email account to publish — you can
+              remove anything you upload from your account page.
             </p>
           )}
+          <p className="mt-3 text-[11.5px] leading-relaxed text-bone-500">
+            Ten uploads per account per day. Each upload can be retracted for seven days.
+          </p>
         </div>
       </div>
     </div>
