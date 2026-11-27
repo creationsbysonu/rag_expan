@@ -8,7 +8,7 @@ project: https://supabase.com/dashboard/account/tokens
 Steps:
   1. Enable anonymous sign-ins (the chat UI signs visitors in anonymously).
   2. Push the Edge Function secrets (Gemini key, ingest secret, limits).
-  3. Deploy the `chat` and `ingest` functions with --no-verify-jwt.
+  3. Deploy the `chat`, `ingest` and `documents` functions with --no-verify-jwt.
 
 Usage:
     SUPABASE_ACCESS_TOKEN=sbp_... python3 scripts/deploy_supabase.py
@@ -30,7 +30,7 @@ from urllib.parse import urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CLI = "supabase@2.40.7"
-FUNCTIONS = ["chat", "ingest"]
+FUNCTIONS = ["chat", "ingest", "documents"]
 # Pushed only when present in .env; which ones matter depends on LLM_PROVIDER.
 OPTIONAL_SECRETS = [
     "CLOUDFLARE_ACCOUNT_ID",

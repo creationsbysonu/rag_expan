@@ -416,8 +416,34 @@ def main() -> int:
     check("ingest accepts a valid file", status in (200, 429),
           f"HTTP {status} — {detail}")
 
-    # Leave the corpus exactly as it was: a successful upload created real
-    # chunks, a failed one left a document row behind. Both go away here.
+    document_id = None
+    if status == 200:
+        try:
+            document_id = json.loads(body).get("document_id")
+        except ValueError:
+            document_id = None
+
+    # Removal is scoped to the uploader or an admin; the shared ingest secret
+    # acts as an operator. The corpus is public, so an anonymous reader may not
+    # delete from it.
+    if document_id:
+        status, _, body = request(
+            "DELETE",
+            f"{base}/functions/v1/documents?id={document_id}",
+            headers={"apikey": PUBLISHABLE},
+        )
+        check("document delete requires the uploader or an operator", status == 401,
+              f"HTTP {status}")
+
+        status, _, body = request(
+            "DELETE",
+            f"{base}/functions/v1/documents?id={document_id}",
+            headers={"apikey": PUBLISHABLE, "x-ingest-secret": secret},
+        )
+        check("document delete removes the upload",
+              status == 200 and document_id.encode() in body, f"HTTP {status}")
+
+    # Leave the corpus exactly as it was, even when the delete path above failed.
     if service:
         # chunks cascade from documents, so removing the document is enough
         request(
@@ -425,7 +451,7 @@ def main() -> int:
             f"{base}/rest/v1/documents?title=eq.Smoke%20test%20document",
             headers={"apikey": service, "Authorization": f"Bearer {service}"},
         )
-        print("  (cleaned up the smoke-test document)")
+        print("  (corpus restored to its pre-smoke state)")
 
     # --------------------------------------------------------------- report
     passed = sum(1 for ok, _, _ in results if ok)

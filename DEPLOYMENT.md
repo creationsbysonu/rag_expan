@@ -59,13 +59,20 @@ supabase secrets set \
   RATE_LIMIT_PER_MINUTE=30 \
   INGEST_SECRET=<random-long-string>
 
-supabase functions deploy chat  --no-verify-jwt
-supabase functions deploy ingest --no-verify-jwt
+supabase functions deploy chat      --no-verify-jwt
+supabase functions deploy ingest    --no-verify-jwt
+supabase functions deploy documents --no-verify-jwt
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are injected
 automatically. `chat` is public (rate-limited per user/IP); `ingest` requires an
 admin profile or the `x-ingest-secret` header.
+
+`documents` only answers `DELETE /functions/v1/documents?id=<uuid>`. A document
+may be removed by the account that uploaded it or by an admin; the shared
+`x-ingest-secret` header counts as an operator for scripted cleanup. Deletion
+removes the stored original, cascades the passages, and clears `query_cache`,
+since a cached answer may cite a passage that no longer exists.
 
 ### One-shot alternative
 

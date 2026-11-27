@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUp, Loader2, Sparkles } from "lucide-react";
+import { BrandMark } from "@/components/brand";
 import { streamChat } from "@/lib/api";
 import type { ChatMessage, Locale, SourceRef } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -131,15 +132,15 @@ export function EmbedChat({ accent }: { accent?: string }) {
     <div className="flex h-[100dvh] flex-col bg-ink-950 text-bone-100">
       <div className="flex shrink-0 items-center justify-between border-b border-bone-100/10 px-4 py-3">
         <div className="flex items-center gap-2">
-          <span
-            className="grid h-6 w-6 place-items-center rounded-[3px] text-[10px] font-medium text-ink-950"
-            style={{ background: accent ?? "#dfa851" }}
-          >
-            स
-          </span>
+          <BrandMark className="h-6 w-6" />
           <div>
-            <p className="text-[12.5px] leading-none text-bone-100">Record Index</p>
-            <p className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.14em] text-bone-500">
+            <p className="devanagari text-[12.5px] leading-none text-bone-100">अभिलेख</p>
+            <p className="mt-1 flex items-center gap-1.5 font-mono text-[8.5px] uppercase tracking-[0.14em] text-bone-500">
+              <span
+                className="h-1 w-1 rounded-full"
+                style={{ background: accent ?? "#dfa851" }}
+                aria-hidden
+              />
               grounded · cited
             </p>
           </div>

@@ -165,7 +165,7 @@ async def lifespan(app: FastAPI):
     pass
 
 app = FastAPI(
-    title="नेपाल सरकारी RAG API",
+    title="अभिलेख · Abhilekh API",
     description="E-Governance Document Q&A System with Chat Interface",
     lifespan=lifespan
 )
@@ -1352,7 +1352,8 @@ async def export_answer(request: dict):
     
     if format_type == "text":
         # Plain text format
-        text_content = f"""नेपाल सरकारी RAG System
+        text_content = f"""अभिलेख · Abhilekh
+Nepal's public record, answered
 {'='*60}
 मिति: {timestamp}
 
@@ -1376,7 +1377,7 @@ async def export_answer(request: dict):
             "timestamp": timestamp,
             "question": question,
             "answer": answer,
-            "system": "नेपाल सरकारी RAG System"
+            "system": "अभिलेख · Abhilekh"
         }
         return JSONResponse(content=json_content)
 
@@ -1402,7 +1403,7 @@ else:
 if __name__ == "__main__":
     import uvicorn
     print("\n" + "="*80)
-    print("🚀 नेपाल सरकारी RAG System with Chat Interface")
+    print("🚀 अभिलेख · Abhilekh — chat interface")
     print("="*80)
     print(f"📱 Web Interface: http://localhost:8001")
     print(f"📚 API Docs: http://localhost:8001/docs")

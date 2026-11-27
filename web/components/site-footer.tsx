@@ -88,7 +88,7 @@ export function SiteFooter() {
             </span>
           </Link>
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-bone-500">
-            © {new Date().getFullYear()} सरकार Record Index · Kathmandu
+            © {new Date().getFullYear()} अभिलेख · Abhilekh · Kathmandu
           </p>
         </div>
 

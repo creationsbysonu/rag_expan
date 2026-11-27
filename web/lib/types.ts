@@ -59,6 +59,8 @@ export interface DocumentRow {
   published_at: string | null;
   created_at: string;
   source_url: string | null;
+  /** Account that ingested it; null when published with the ingest secret. */
+  uploaded_by?: string | null;
 }
 
 export interface CorpusStats {

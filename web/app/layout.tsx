@@ -8,12 +8,15 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "सरकार · Record Index — Nepal's public record, answered",
-    template: "%s · सरकार Record Index",
+    default: "अभिलेख · Abhilekh — Nepal's public record, answered",
+    template: "%s · अभिलेख",
   },
+  applicationName: "Abhilekh",
   description:
-    "A bilingual retrieval system over Nepal's government notices and publications. Every answer cites the passages it came from.",
+    "Abhilekh — a bilingual retrieval system over Nepal's public administrative record. Every answer cites the passages it came from.",
   keywords: [
+    "Abhilekh",
+    "अभिलेख",
     "Nepal government",
     "नेपाल सरकार",
     "gazette",
@@ -23,18 +26,27 @@ export const metadata: Metadata = {
     "public records",
   ],
   openGraph: {
-    title: "सरकार · Record Index",
+    title: "अभिलेख · Abhilekh",
     description:
       "Ask Nepal's public administrative record. Grounded, cited, bilingual answers.",
     url: siteUrl,
-    siteName: "सरकार Record Index",
+    siteName: "अभिलेख · Abhilekh",
     locale: "en_NP",
     type: "website",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "अभिलेख — Nepal's public record, answered.",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "सरकार · Record Index",
+    title: "अभिलेख · Abhilekh",
     description: "Grounded, cited answers over Nepal's public record.",
+    images: ["/og.png"],
   },
   authors: [{ name: "Sonu Kumar Gupta", url: "https://github.com/creationsbysonu" }],
   creator: "Sonu Kumar Gupta",

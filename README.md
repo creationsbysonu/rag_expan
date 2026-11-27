@@ -1,12 +1,19 @@
-# सरकार · Record Index
+<p align="center">
+  <img src="web/app/icon.svg" width="76" height="76" alt="अभिलेख mark">
+</p>
 
-Bilingual retrieval system over Nepal's public administrative record. Every
-answer is generated only from indexed government documents and arrives with the
-passages it was drawn from.
+# अभिलेख · Abhilekh
+
+Nepal's public record, answered. A bilingual retrieval system over the public
+administrative record: every answer is generated only from indexed government
+documents and arrives with the passages it was drawn from.
+
+*Abhilekh* (अभिलेख) is the Nepali word for a record — the archived, citable
+original.
 
 ```
 web/        Next.js 15 + TypeScript + Tailwind v4 frontend (Vercel)
-supabase/   Postgres schema (pgvector), RLS, RPCs, Edge Functions (chat, ingest)
+supabase/   Postgres schema (pgvector), RLS, RPCs, Edge Functions (chat, ingest, documents)
 scripts/    MySQL → Supabase migration
 rag/        Python retrieval pipeline (embeddings, chunking, validation)
 app_chat.py Legacy FastAPI backend (local development / fallback)

@@ -125,6 +125,7 @@ Deno.serve(async (request: Request) => {
       chunk_count: chunks.length,
       published_at: publishedAt,
       ingest_status: "pending",
+      uploaded_by: user?.id ?? null,
     })
     .select("id")
     .single();

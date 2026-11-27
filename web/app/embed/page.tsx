@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { EmbedChat } from "@/components/embed/embed-chat";
 
 export const metadata: Metadata = {
-  title: "Record Index — embedded",
+  title: "अभिलेख — embedded",
   robots: { index: false, follow: false },
 };
 

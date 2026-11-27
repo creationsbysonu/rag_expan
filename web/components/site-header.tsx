@@ -55,7 +55,7 @@ export function SiteHeader() {
       )}
     >
       <div className="mx-auto flex h-16 max-w-[1240px] items-center justify-between gap-6 px-5 md:px-8">
-        <Link href="/" className="group shrink-0" aria-label="सरकार Record Index — home">
+        <Link href="/" className="group shrink-0" aria-label="अभिलेख — home">
           <Wordmark />
         </Link>
 

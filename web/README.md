@@ -1,7 +1,7 @@
-# सरकार · Record Index — web
+# अभिलेख · Abhilekh — web
 
-Next.js 15 (App Router) + TypeScript + Tailwind v4 frontend for the bilingual
-Nepalese government RAG system. Deployed on Vercel, backed by Supabase
+Next.js 15 (App Router) + TypeScript + Tailwind v4 frontend for Abhilekh, the
+bilingual retrieval system over Nepal's public administrative record. Deployed on Vercel, backed by Supabase
 (Postgres + pgvector + Auth + Edge Functions).
 
 ## Run locally

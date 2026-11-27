@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, FileText, Loader2, Search } from "lucide-react";
-import { fetchDocuments, fetchMinistries } from "@/lib/api";
+import { ArrowUpRight, FileText, Loader2, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { deleteDocument, fetchDocuments, fetchMinistries } from "@/lib/api";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { DocumentRow } from "@/lib/types";
 import { cn, formatNumber, relativeTime } from "@/lib/utils";
 import { Input, Select } from "@/components/ui/input";
@@ -14,10 +16,53 @@ export function CorpusBrowser() {
   const [query, setQuery] = useState("");
   const [ministry, setMinistry] = useState<string>("");
   const [sort, setSort] = useState<"recent" | "title" | "chunks">("recent");
+  const [viewer, setViewer] = useState<{ id: string; admin: boolean } | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMinistries().then(setMinistries).catch(() => undefined);
   }, []);
+
+  // Deletion is scoped: your own uploads, or anything if you are an admin.
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    const supabase = createClient();
+    if (!supabase) return;
+    supabase.auth.getUser().then(async ({ data }) => {
+      const user = data.user;
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      setViewer({ id: user.id, admin: (profile as { role?: string } | null)?.role === "admin" });
+    });
+  }, []);
+
+  const canRemove = (row: DocumentRow) =>
+    Boolean(viewer && (viewer.admin || row.uploaded_by === viewer.id));
+
+  async function remove(row: DocumentRow) {
+    const passages = formatNumber(row.chunk_count ?? 0);
+    const confirmed = window.confirm(
+      `Remove “${row.title}” from the corpus?\n\n` +
+        `Its ${passages} passages will be deleted, cached answers cleared, and the assistant ` +
+        `will no longer be able to cite it.`,
+    );
+    if (!confirmed) return;
+
+    setRemoving(row.id);
+    try {
+      await deleteDocument(row.id);
+      setRows((prev) => prev?.filter((item) => item.id !== row.id) ?? prev);
+      toast.success("Document removed", { description: row.title });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not remove the document");
+    } finally {
+      setRemoving(null);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -111,12 +156,12 @@ export function CorpusBrowser() {
       ) : (
         <ol className="divide-y divide-bone-100/8 border-y border-bone-100/8">
           {sorted.map((row, index) => (
-            <li key={row.id}>
+            <li key={row.id} className="group flex items-stretch">
               <a
                 href={row.source_url ?? `/chat?q=${encodeURIComponent(row.title)}`}
                 target={row.source_url ? "_blank" : undefined}
                 rel={row.source_url ? "noopener noreferrer" : undefined}
-                className="group grid grid-cols-[28px_1fr_auto] items-center gap-3 px-1 py-4 transition-colors hover:bg-bone-100/[0.025] md:grid-cols-[34px_1fr_180px_90px_auto]"
+                className="grid flex-1 grid-cols-[28px_1fr_auto] items-center gap-3 px-1 py-4 transition-colors hover:bg-bone-100/[0.025] md:grid-cols-[34px_1fr_180px_90px_auto]"
               >
                 <span className="font-mono text-[10px] text-bone-500">
                   {String(index + 1).padStart(3, "0")}
@@ -155,6 +200,22 @@ export function CorpusBrowser() {
                   <ArrowUpRight className="h-3.5 w-3.5 text-bone-500 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brass-300" />
                 </span>
               </a>
+              {canRemove(row) ? (
+                <button
+                  type="button"
+                  onClick={() => remove(row)}
+                  disabled={removing === row.id}
+                  title="Remove from the corpus"
+                  aria-label={`Remove ${row.title} from the corpus`}
+                  className="my-2 ml-1 grid w-9 shrink-0 place-items-center rounded-[4px] text-bone-500 opacity-0 transition-colors hover:bg-red-500/10 hover:text-red-300 focus-visible:opacity-100 disabled:opacity-50 md:group-hover:opacity-100 max-md:opacity-100 max-md:hover:text-red-300"
+                >
+                  {removing === row.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              ) : null}
             </li>
           ))}
         </ol>

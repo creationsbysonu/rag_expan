@@ -240,7 +240,7 @@ export async function fetchDocuments({
     let builder = supabase
       .from("documents")
       .select(
-        "id,notice_id,title,ministry,service_name,category,language,page_count,chunk_count,published_at,created_at,source_url",
+        "id,notice_id,title,ministry,service_name,category,language,page_count,chunk_count,published_at,created_at,source_url,uploaded_by",
       )
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -272,6 +272,32 @@ export async function fetchDocuments({
   } catch {
     return [];
   }
+}
+
+/**
+ * Removes a document you uploaded; admins may remove any document. The edge
+ * function owns authorisation, storage cleanup and cache invalidation.
+ */
+export async function deleteDocument(id: string): Promise<void> {
+  if (!isSupabaseConfigured) {
+    throw new ApiError("Removing documents needs the hosted backend.", "local_mode");
+  }
+  const response = await fetch(
+    `${SUPABASE_URL}/functions/v1/documents?id=${encodeURIComponent(id)}`,
+    { method: "DELETE", headers: await authHeaders() },
+  );
+  if (response.ok) return;
+
+  let message = `Could not remove the document (HTTP ${response.status})`;
+  let code: string | undefined;
+  try {
+    const data = (await response.json()) as { message?: string; code?: string };
+    if (data.message) message = data.message;
+    code = data.code;
+  } catch {
+    // non-JSON error body
+  }
+  throw new ApiError(message, code);
 }
 
 export async function fetchMinistries(): Promise<string[]> {
